@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="400" height="400"
+     viewBox="0 0 200 200">
+  <defs>
+    <!-- 主体蓝色渐变 -->
+    <linearGradient id="blueGrad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#1a8cff"/>
+      <stop offset="100%" stop-color="#0040a0"/>
+    </linearGradient>
+
+    <!-- 右上角高光星形渐变 -->
+    <linearGradient id="starGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7fffff"/>
+      <stop offset="100%" stop-color="#00a8ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 外圈圆环 -->
+  <circle cx="100" cy="100" r="86"
+          fill="none"
+          stroke="url(#blueGrad)"
+          stroke-width="8" />
+
+  <!-- 下方弧线 -->
+  <path d="M 35 135
+           A 70 70 0 0 0 165 135"
+        fill="none"
+        stroke="url(#blueGrad)"
+        stroke-width="6"
+        stroke-linecap="round" />
+
+  <!-- 左侧楼体 -->
+  <path d="M 75 130 L 75 70 L 85 60 L 85 130 Z"
+        fill="url(#blueGrad)" />
+
+  <!-- 中间楼体 -->
+  <path d="M 95 130 L 95 55 L 105 45 L 105 130 Z"
+        fill="url(#blueGrad)" />
+
+  <!-- 右侧楼体（带内侧折线） -->
+  <path d="M 115 130 L 115 65 L 125 55 L 125 100 L 135 90 L 135 130 Z"
+        fill="url(#blueGrad)" />
+
+  <!-- 右上角星形高光 -->
+  <g transform="translate(152,40)">
+    <polygon points="0,-10 2,-2 10,0 2,2 0,10 -2,2 -10,0 -2,-2"
+             fill="url(#starGrad)" />
+  </g>
+</svg>

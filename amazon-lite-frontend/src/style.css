@@ -1,0 +1,9 @@
+/* src/style.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 确保你添加了这些，以便 Tailwind 能够生成样式 */
+body {
+  @apply bg-gray-50 text-gray-800 antialiased;
+}
