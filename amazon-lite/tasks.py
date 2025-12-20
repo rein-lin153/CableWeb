@@ -2,7 +2,7 @@ import requests
 import models
 from datetime import datetime
 from sqlalchemy.orm import Session
-from database import SessionLocal
+from database import AsyncSessionLocal
 from config import settings # <--- 导入
 
 # ==========================================
@@ -81,31 +81,29 @@ def get_realtime_copper_prices():
 # ==========================================
 # 定时任务 (保持不变，只是调用了新的爬虫函数)
 # ==========================================
-def update_copper_price_task():
+async def update_copper_price_task():
     print(f"[{datetime.now()}] ⏰ 定时任务启动...")
     
-    data = get_realtime_copper_prices()
+    data = get_realtime_copper_prices() # 这个函数是同步爬虫，保持不变
     
-    # 安全检查：如果价格为0或获取失败，不写入
     if not data or data['CNY']['price'] <= 0:
         print("⚠️ 价格无效，跳过数据库写入")
         return
 
-    db: Session = SessionLocal()
-    try:
-        record = models.CopperPrice(
-            cny_price = data['CNY']['price'],
-            usd_price = data['USD']['price'],
-            exchange_rate = data['exchange_rate'],
-            updated_at = datetime.now()
-        )
-        
-        db.add(record)
-        db.commit()
-        print(f"💾 数据库已更新: ¥{record.cny_price}")
-        
-    except Exception as e:
-        print(f"❌ 数据库写入失败: {e}")
-        db.rollback()
-    finally:
-        db.close()
+    # 修改此处：使用 async with 和 await
+    async with AsyncSessionLocal() as db:
+        try:
+            record = models.CopperPrice(
+                cny_price = data['CNY']['price'],
+                usd_price = data['USD']['price'],
+                exchange_rate = data['exchange_rate'],
+                updated_at = datetime.now()
+            )
+            
+            db.add(record)
+            await db.commit() # 必须加 await
+            print(f"💾 数据库已更新: ¥{record.cny_price}")
+            
+        except Exception as e:
+            print(f"❌ 数据库写入失败: {e}")
+            await db.rollback() # 必须加 await

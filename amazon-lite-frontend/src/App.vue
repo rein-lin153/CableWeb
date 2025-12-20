@@ -1,5 +1,7 @@
 <template>
   <div class="antialiased text-gray-900">
+    <ToastManager />
+
     <Navbar v-if="!$route.meta.hideNavbar" />
     <CartDrawer v-if="!$route.meta.hideNavbar" />
     
@@ -12,18 +14,19 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'; // 引入 onMounted
+import { onMounted } from 'vue';
 import Navbar from './components/Navbar.vue';
 import CartDrawer from './components/CartDrawer.vue';
-import { useAuth } from './composables/useAuth'; // 引入 Auth
+import ToastManager from './components/ToastManager.vue'; // 导入了组件
+import { useAuth } from './composables/useAuth';
 
-const { initializeAuth } = useAuth(); // 获取初始化函数
+const { initializeAuth } = useAuth();
 
-// 【核心修复】App 挂载时，立即恢复用户状态
 onMounted(() => {
   initializeAuth();
 });
 </script>
+
 <style>
 .fade-enter-active,
 .fade-leave-active {

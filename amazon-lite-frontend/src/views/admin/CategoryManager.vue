@@ -83,20 +83,25 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import api from '../../api/axios';
+import { useToast } from '../../composables/useToast'; // 引入 Toast
 
-const rawCategories = ref([]); // 后端返回的原始数据（平铺的）
+// 使用 Toast 钩子
+const { success, warning } = useToast();
+
+const rawCategories = ref([]);
 const showModal = ref(false);
 const editingId = ref(null);
 const form = reactive({ name: '', parent_id: null });
 
-// 获取所有分类 (flat=true)
 const fetchCategories = async () => {
-  const res = await api.get('/categories/', { params: { flat: true } });
-  rawCategories.value = res.data;
+  try {
+    const res = await api.get('/categories/', { params: { flat: true } });
+    rawCategories.value = res.data;
+  } catch (e) {
+    // 获取列表失败通常不需要弹窗，或者是网络错误，已由 axios 拦截器处理
+  }
 };
 
-// === 核心算法：将平铺列表转换为树形结构，再拍平用于表格展示 ===
-// 1. 构建树
 const buildTree = (items, parentId = null, level = 0) => {
   return items
     .filter(item => item.parent_id === parentId)
@@ -107,7 +112,6 @@ const buildTree = (items, parentId = null, level = 0) => {
     }));
 };
 
-// 2. 拍平树 (深度优先遍历，用于 <tr v-for> 显示)
 const flattenTree = (tree) => {
   let result = [];
   for (const node of tree) {
@@ -119,13 +123,11 @@ const flattenTree = (tree) => {
   return result;
 };
 
-// 计算属性：用于表格渲染的数据 (带 level 属性)
 const treeTableData = computed(() => {
   const tree = buildTree(rawCategories.value);
   return flattenTree(tree);
 });
 
-// 计算属性：用于 Select 下拉框的数据 (带缩进字符)
 const flatOptions = computed(() => {
   return treeTableData.value.map(cat => ({
     id: cat.id,
@@ -133,16 +135,12 @@ const flatOptions = computed(() => {
   }));
 });
 
-// === 操作逻辑 ===
-
 const openModal = (cat = null, parentId = null) => {
   if (cat) {
-    // 编辑模式
     editingId.value = cat.id;
     form.name = cat.name;
     form.parent_id = cat.parent_id;
   } else {
-    // 新建模式 (可能是新建根，也可能是添加子)
     editingId.value = null;
     form.name = '';
     form.parent_id = parentId || null;
@@ -151,7 +149,9 @@ const openModal = (cat = null, parentId = null) => {
 };
 
 const handleSubmit = async () => {
-  if (!form.name) return alert('名称不能为空');
+  // 表单校验：使用 warning 弹窗
+  if (!form.name) return warning('名称不能为空'); 
+  
   try {
     if (editingId.value) {
       await api.put(`/categories/${editingId.value}`, form);
@@ -160,18 +160,29 @@ const handleSubmit = async () => {
     }
     showModal.value = false;
     fetchCategories();
-  } catch (e) { alert('操作失败'); }
+    // 成功提示：使用 success 弹窗
+    success(editingId.value ? '修改成功' : '创建成功');
+  } catch (e) { 
+    // 【重点】这里留空！
+    // 400 错误（名称重复）已被 src/api/axios.js 拦截器捕获并弹窗提示
+    // 所以这里不需要再 alert 了，控制台红字是正常的调试信息
+    console.error("提交失败:", e);
+  }
 };
 
 const handleDelete = async (cat) => {
   if (cat.children && cat.children.length > 0) {
-    return alert('请先删除或移动该分类下的子分类！');
+    return warning('请先删除或移动该分类下的子分类！');
   }
   if(!confirm(`确定删除 ${cat.name} 吗？`)) return;
+  
   try {
     await api.delete(`/categories/${cat.id}`);
     fetchCategories();
-  } catch (e) { alert('删除失败'); }
+    success('删除成功');
+  } catch (e) { 
+    console.error(e);
+  }
 };
 
 onMounted(fetchCategories);

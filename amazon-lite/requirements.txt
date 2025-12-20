@@ -11,3 +11,4 @@ python-jose
 apscheduler
 datetime
 pydantic-settings
+aiosqlite
