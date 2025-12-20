@@ -237,8 +237,8 @@ const isModalOpen = ref(false);
 const currentProduct = ref({});
 
 const scrollToProducts = () => {
-  const el = document.getElementById('product-section');
-  if (el) el.scrollIntoView({ behavior: 'smooth' });
+  // ✅ 新代码：直接跳转到产品列表页
+  router.push('/products');
 };
 
 // 轮播图数据

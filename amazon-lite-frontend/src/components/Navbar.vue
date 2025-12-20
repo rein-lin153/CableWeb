@@ -52,23 +52,27 @@
                 <p class="text-xs text-gray-500">登录账号</p>
                 <p class="text-sm font-bold text-gray-900 truncate">{{ user?.email }}</p>
               </div>
-              
+
               <div class="py-1">
-                <router-link to="/orders/my" class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700">
-                  <span class="mr-3 text-gray-400 group-hover:text-orange-500">📦</span> 我的订单
+                <router-link to="/orders/my"
+                  class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700">
+                  我的订单
                 </router-link>
-                <router-link to="/inquiries" class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700">
-                  <span class="mr-3 text-gray-400 group-hover:text-orange-500">🏷️</span> 我的询价单
+                <router-link to="/inquiries"
+                  class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700">
+                  我的询价单
                 </router-link>
-                
-                <router-link v-if="isAdmin" to="/admin/dashboard" class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700">
-                  <span class="mr-3 text-gray-400 group-hover:text-orange-500">⚡</span> 管理后台
+
+                <router-link v-if="isAdmin" to="/admin/dashboard"
+                  class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700">
+                  管理后台
                 </router-link>
               </div>
 
               <div class="py-1">
-                <button @click="logout" class="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 text-left">
-                  <span class="mr-3 text-gray-400 group-hover:text-red-500">🚪</span> 退出登录
+                <button @click="logout"
+                  class="group flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 text-left">
+                  退出登录
                 </button>
               </div>
             </div>
@@ -95,9 +99,10 @@
       </div>
     </div>
 
-    <transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform -translate-y-2 opacity-0"
-      enter-to-class="transform translate-y-0 opacity-100" leave-active-class="transition duration-150 ease-in"
-      leave-from-class="transform translate-y-0 opacity-100" leave-to-class="transform -translate-y-2 opacity-0">
+    <transition enter-active-class="transition duration-200 ease-out"
+      enter-from-class="transform -translate-y-2 opacity-0" enter-to-class="transform translate-y-0 opacity-100"
+      leave-active-class="transition duration-150 ease-in" leave-from-class="transform translate-y-0 opacity-100"
+      leave-to-class="transform -translate-y-2 opacity-0">
       <div v-if="isMobileMenuOpen" class="md:hidden bg-white border-t border-gray-100 shadow-lg">
         <div class="px-4 pt-2 pb-4 space-y-1">
           <router-link v-for="link in navLinks" :key="link.path" :to="link.path" @click="isMobileMenuOpen = false"

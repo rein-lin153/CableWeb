@@ -124,6 +124,7 @@ const menuGroups = [
       { name: '商品管理', path: '/admin/products', icon: '🔌' },
       { name: '分类管理', path: '/admin/categories', icon: '📑' },
       { name: '技术参数', path: '/admin/specs', icon: '📏' },
+      { name: '成本核算', path: '/admin/costs', icon: '💰' },
     ]
   },
   {

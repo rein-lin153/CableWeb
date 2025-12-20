@@ -8,8 +8,8 @@ import RegisterView from '../views/RegisterView.vue';
 import ProductsView from '../views/ProductsView.vue';
 import NewsView from '../views/NewsView.vue';
 import NewsDetailView from '../views/NewsDetailView.vue';
-import OrderHistoryView from '../views/OrderHistoryView.vue'; 
-import InquiryList from '../views/InquiryList.vue'; 
+import OrderHistoryView from '../views/OrderHistoryView.vue';
+import InquiryList from '../views/InquiryList.vue';
 import TechSpecs from '../views/TechSpecs.vue';
 import CheckoutView from '../views/CheckoutView.vue'; // [新增] 引入结算页
 import UserInquiries from '../views/user/UserInquiries.vue';
@@ -28,7 +28,8 @@ import CategoryManager from '../views/admin/CategoryManager.vue';
 import CustomerManager from '../views/admin/CustomerManager.vue';
 import EmployeeManager from '../views/admin/EmployeeManager.vue';
 import SpecManager from '../views/admin/SpecManager.vue';
-import InquiryManager from '../views/admin/InquiryManager.vue'; 
+import InquiryManager from '../views/admin/InquiryManager.vue';
+import CostCalculator from '../views/admin/CostCalculator.vue';
 
 const routes = [
   // ==============================
@@ -47,15 +48,16 @@ const routes = [
     component: UserInquiries,
     meta: { requiresAuth: true }
   },
-  
+
+
   // 订单相关
-  { 
-    path: '/orders/my', 
-    name: 'MyOrders', 
+  {
+    path: '/orders/my',
+    name: 'MyOrders',
     component: OrderHistoryView,
     meta: { requiresAuth: true }
   },
-  
+
   // [新增] 结算页面路由
   {
     path: '/checkout',
@@ -63,7 +65,7 @@ const routes = [
     component: CheckoutView,
     meta: { requiresAuth: true }
   },
-  
+
   // 询价相关
   {
     path: '/inquiries',
@@ -79,8 +81,10 @@ const routes = [
     path: '/driver',
     name: 'DriverDashboard',
     component: DriverDashboard,
-    meta: { hideNavbar: true, requiresAuth: true } 
+    meta: { hideNavbar: true, requiresAuth: true }
   },
+
+
 
   // ==============================
   // 后台路由 (隐藏导航栏)
@@ -101,8 +105,13 @@ const routes = [
       { path: 'employees', name: 'AdminEmployees', component: EmployeeManager },
       { path: 'specs', name: 'SpecManager', component: SpecManager },
       { path: 'inquiries', name: 'AdminInquiries', component: InquiryManager },
+      {
+        path: 'costs',
+        name: 'CostCalculator',
+        component: CostCalculator
+      },
     ]
-  }
+  },
 ];
 
 const router = createRouter({

@@ -1,362 +1,165 @@
 <template>
-  <div class="flex flex-col h-full bg-white rounded-xl shadow-sm border border-gray-100">
-
-    <div
-      class="p-4 md:p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <h2 class="text-xl font-bold text-gray-900 flex items-center">
-        <span class="w-2 h-6 bg-orange-500 rounded-full mr-3"></span>
-        产品库存与SKU管理
-      </h2>
-      <div class="flex w-full sm:w-auto space-x-2">
-        <div class="flex-1 max-w-sm mx-4"> <input v-model="searchQuery" @keyup.enter="fetchData" type="text"
-            placeholder="搜索产品名称..."
-            class="w-full px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none">
-        </div>
-        <button @click="$router.push('/admin/categories')"
-          class="flex-1 sm:flex-none bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center">
-          <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          分类
-        </button>
-        <button @click="openCreateModal"
-          class="flex-1 sm:flex-none bg-gray-900 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors flex items-center justify-center">
-          <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          新增产品
-        </button>
-      </div>
+  <div class="p-6 bg-gray-50 min-h-screen">
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-gray-800">📦 商品发布中心</h1>
+      <p class="text-sm text-gray-500">基于 [成本核算] 数据直接生成前台商品</p>
     </div>
 
-    <div class="flex-1 overflow-auto">
-      <table class="hidden md:table min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50 sticky top-0 z-10">
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">产品图</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称 / 描述</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">分类</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">价格区间</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">总库存</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
+            <th class="th-std">成本来源 (规格)</th>
+            <th class="th-std">核算分类</th>
+            <th class="th-std">建议零售价</th>
+            <th class="th-std">前台状态</th>
+            <th class="th-std text-right">操作</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
-          <tr v-if="loading">
-            <td colspan="6" class="p-10 text-center text-gray-500">加载中...</td>
-          </tr>
-          <tr v-else v-for="product in products" :key="product.id" class="hover:bg-gray-50 transition-colors">
-            <td class="px-6 py-4 whitespace-nowrap">
-              <img :src="product.image_url" class="h-12 w-12 object-cover rounded bg-gray-100 border border-gray-200">
+          <tr v-for="item in costList" :key="item.id" class="hover:bg-gray-50">
+            <td class="px-6 py-4">
+              <div class="font-bold text-gray-900">{{ item.spec_name }}</div>
+              <div class="text-xs text-gray-400">{{ item.remark }}</div>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-600">
+              <span class="bg-gray-100 px-2 py-1 rounded">{{ item.category }}</span>
             </td>
             <td class="px-6 py-4">
-              <div class="text-sm font-bold text-gray-900">{{ product.name }}</div>
-              <div class="text-xs text-gray-500 truncate w-48">{{ product.description }}</div>
+              <div class="text-lg font-bold text-yellow-600">${{ item.reference_price }}</div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
-                {{ getCategoryName(product.category_id) }}
-              </span>
+            <td class="px-6 py-4">
+              <span class="text-xs text-gray-400">待发布</span> 
             </td>
-            <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-orange-600 font-bold">
-              {{ getPriceRange(product.variants) }}
-              <span class="text-xs text-gray-400 font-normal">/ {{ product.unit || '单位' }}</span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-bold"
-                :class="getTotalStock(product.variants) > 0 ? 'text-green-600' : 'text-red-500'">
-                {{ getTotalStock(product.variants) }}
-                <span class="font-normal text-gray-400 text-xs">{{ product.unit || '件' }}</span>
-              </div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-              <button @click="openEditModal(product)" class="text-indigo-600 hover:text-indigo-900">编辑SKU</button>
-              <button @click="handleDelete(product)" class="text-red-600 hover:text-red-900">删除</button>
+            <td class="px-6 py-4 text-right">
+              <button 
+                @click="openConvert(item)" 
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs shadow transition flex items-center gap-1 ml-auto"
+              >
+                🚀 转为商品
+              </button>
             </td>
           </tr>
         </tbody>
       </table>
-
-      <div class="md:hidden p-4 space-y-4">
-        <div v-if="loading" class="text-center py-10 text-gray-400">加载中...</div>
-        <div v-for="product in products" :key="product.id"
-          class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <div class="flex items-start">
-            <img :src="product.image_url" class="h-16 w-16 object-cover rounded-lg border">
-            <div class="ml-4 flex-1 min-w-0">
-              <div class="flex justify-between items-start">
-                <span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-500 uppercase font-bold">{{
-                  getCategoryName(product.category_id) }}</span>
-                <div class="text-sm font-black text-orange-600">{{ getPriceRange(product.variants) }}</div>
-              </div>
-              <h3 class="font-bold text-gray-900 truncate mt-1">{{ product.name }}</h3>
-              <p class="text-xs text-gray-400 truncate">{{ product.description }}</p>
-            </div>
-          </div>
-          <div class="mt-4 pt-3 border-t border-gray-50 flex justify-between items-center">
-            <div class="text-xs">
-              库存: <span class="font-bold"
-                :class="getTotalStock(product.variants) > 0 ? 'text-green-600' : 'text-red-500'">{{
-                  getTotalStock(product.variants) }}</span> {{ product.unit }}
-            </div>
-            <div class="space-x-4">
-              <button @click="openEditModal(product)" class="text-sm font-bold text-indigo-600">编辑</button>
-              <button @click="handleDelete(product)" class="text-sm font-bold text-red-500">删除</button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <div v-if="showModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
-
-        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <h3 class="text-lg font-bold text-gray-900">{{ editingId ? '编辑产品 & SKU' : '新增产品' }}</h3>
-          <button @click="showModal = false" class="text-gray-400 hover:text-gray-600">
-            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div class="col-span-1 md:col-span-2">
-              <label class="block text-sm font-bold text-gray-700 mb-1">产品名称</label>
-              <input v-model="form.name" type="text"
-                class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 outline-none">
-            </div>
-
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">所属分类</label>
-              <select v-model="form.category_id"
-                class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 outline-none bg-white">
-                <option :value="null">请选择分类</option>
-                <option v-for="cat in categoryOptions" :key="cat.id" :value="cat.id">
-                  {{ cat.name }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-sm font-bold text-gray-700 mb-1">计价单位</label>
-              <input v-model="form.unit" type="text"
-                class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 outline-none">
-            </div>
-
-            <div class="col-span-1 md:col-span-2">
-              <label class="block text-sm font-bold text-gray-700 mb-1">图片 URL</label>
-              <input v-model="form.image_url" type="text"
-                class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 outline-none">
-            </div>
+    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white p-6 rounded-lg w-[500px] shadow-2xl">
+        <h2 class="text-xl font-bold mb-4 text-indigo-700">🚀 发布商品</h2>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="lbl">商品名称 (前台显示)</label>
+            <input v-model="form.name" class="input-std font-bold">
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+             <div>
+               <label class="lbl">销售价格 ($)</label>
+               <input v-model.number="form.price" type="number" class="input-std text-yellow-600">
+             </div>
+             <div>
+               <label class="lbl">目标分类</label>
+               <select v-model="form.target_category_id" class="input-std">
+                 <option :value="null">-- 请选择 --</option>
+                 <option v-for="cat in flatCategories" :key="cat.id" :value="cat.id">
+                   {{ '|-- '.repeat(cat.level) + cat.name }}
+                 </option>
+               </select>
+             </div>
           </div>
 
           <div>
-            <div class="flex justify-between items-center mb-3">
-              <h4 class="text-base font-bold text-gray-900">规格配置 (SKU)</h4>
-              <button @click="addVariant"
-                class="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold border border-blue-200">
-                + 添加规格
-              </button>
-            </div>
-
-            <div class="border border-gray-200 rounded-xl overflow-x-auto">
-              <table class="min-w-[600px] md:min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">规格 (平方)</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">颜色</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">单价 (¥)</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">库存</th>
-                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase w-16">操作</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200 bg-white">
-                  <tr v-for="(variant, index) in form.variants" :key="index">
-                    <td class="px-2 py-2"><input v-model="variant.spec" type="text"
-                        class="w-full border-gray-200 rounded text-sm"></td>
-                    <td class="px-2 py-2"><input v-model="variant.color" type="text"
-                        class="w-full border-gray-200 rounded text-sm"></td>
-                    <td class="px-2 py-2"><input v-model.number="variant.price" type="number" step="0.01"
-                        class="w-full border-gray-200 rounded text-sm"></td>
-                    <td class="px-2 py-2"><input v-model.number="variant.stock" type="number"
-                        class="w-full border-gray-200 rounded text-sm"></td>
-                    <td class="px-2 py-2 text-center">
-                      <button @click="removeVariant(index)" class="text-red-400 p-1"><svg class="w-5 h-5" fill="none"
-                          viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg></button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <label class="lbl">图片链接 (可选)</label>
+            <input v-model="form.image_url" class="input-std" placeholder="/static/uploads/...">
+          </div>
+          
+          <div>
+            <label class="lbl">描述</label>
+            <textarea v-model="form.description" rows="3" class="input-std"></textarea>
           </div>
         </div>
 
-        <div class="p-4 md:p-6 border-t border-gray-100 bg-gray-50 flex flex-col-reverse sm:flex-row justify-end gap-3">
-          <button @click="showModal = false"
-            class="w-full sm:w-auto px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-lg text-sm font-medium">取消</button>
-          <button @click="handleSubmit" :disabled="submitting"
-            class="w-full sm:w-auto px-5 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-orange-600 text-sm font-medium disabled:opacity-50">
-            {{ editingId ? '保存修改' : '确认创建' }}
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+          <button @click="showModal=false" class="px-4 py-2 text-gray-500 hover:text-gray-700">取消</button>
+          <button @click="handleConvert" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold shadow">
+            确认发布
           </button>
         </div>
-
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
-import api from '../../api/axios';
+import { ref, onMounted, computed, reactive } from 'vue';
+import axios from '../../api/axios';
 
-const products = ref([]);
-const categories = ref([]);
-const loading = ref(false);
+const costList = ref([]);
+const treeData = ref([]);
 const showModal = ref(false);
-const submitting = ref(false);
-const editingId = ref(null);
 
 const form = reactive({
+  cost_id: null,
   name: '',
-  category_id: null,
-  unit: '卷',
-  image_url: '',
+  price: 0,
+  target_category_id: null,
   description: '',
-  variants: []
+  image_url: ''
 });
 
-const searchQuery = ref(''); // 1. 新增变量
+// 拉取成本列表
+const fetchCosts = async () => {
+  const res = await axios.get('/admin/costs/');
+  costList.value = res.data;
+};
 
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    const [prodRes, catRes] = await Promise.all([
-      // 2. 修改 API 调用，传入 q 参数
-      api.get('/products/', { params: { q: searchQuery.value || undefined } }),
-      api.get('/categories/?flat=true')
-    ]);
-    products.value = prodRes.data;
-    categories.value = catRes.data;
-  } catch (error) { 
-    console.error(error); 
-  } finally { 
-    loading.value = false; 
+// 拉取分类树(用于下拉选择)
+const fetchCategories = async () => {
+  const res = await axios.get('/products/categories/tree');
+  treeData.value = res.data;
+};
+
+// 扁平化分类树
+const flatten = (nodes, level = 0) => {
+  let res = [];
+  for (const node of nodes) {
+    res.push({ ...node, level });
+    if (node.children) res = res.concat(flatten(node.children, level + 1));
   }
+  return res;
 };
+const flatCategories = computed(() => flatten(treeData.value));
 
-const categoryOptions = computed(() => {
-  const buildTree = (items, parentId = null, level = 0) => {
-    return items
-      .filter(item => item.parent_id === parentId)
-      .map(item => ({
-        ...item,
-        level,
-        children: buildTree(items, item.id, level + 1)
-      }));
-  };
-
-  const flattenTree = (tree) => {
-    let result = [];
-    for (const node of tree) {
-      result.push(node);
-      if (node.children) result = result.concat(flattenTree(node.children));
-    }
-    return result;
-  };
-
-  if (!categories.value.length) return [];
-  const tree = buildTree(categories.value);
-  const flat = flattenTree(tree);
-
-  return flat.map(cat => ({
-    id: cat.id,
-    name: '　'.repeat(cat.level) + (cat.level > 0 ? '└ ' : '') + cat.name
-  }));
-});
-
-const getCategoryName = (id) => categories.value.find(c => c.id === id)?.name || '未分类';
-
-const getPriceRange = (variants) => {
-  if (!variants || variants.length === 0) return '暂无报价';
-  const prices = variants.map(v => v.price);
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  if (min === max) return `¥${min}`;
-  return `¥${min} - ¥${max}`;
-};
-
-const getTotalStock = (variants) => {
-  if (!variants) return 0;
-  return variants.reduce((sum, v) => sum + v.stock, 0);
-};
-
-const openCreateModal = () => {
-  editingId.value = null;
-  Object.assign(form, { name: '', category_id: null, unit: '卷', image_url: '', description: '', variants: [] });
-  form.variants.push({ spec: '', color: '', price: 0, stock: 0 });
+const openConvert = (item) => {
+  form.cost_id = item.id;
+  form.name = item.spec_name; // 默认使用规格名
+  form.price = item.reference_price; // 默认使用参考价
+  form.description = `Professional Cable: ${item.spec_name} (${item.category})`;
+  form.target_category_id = null;
   showModal.value = true;
 };
 
-const openEditModal = (product) => {
-  editingId.value = product.id;
-  Object.assign(form, {
-    name: product.name,
-    category_id: product.category_id,
-    unit: product.unit || '卷',
-    image_url: product.image_url,
-    description: product.description,
-    variants: JSON.parse(JSON.stringify(product.variants || []))
-  });
-  showModal.value = true;
-};
-
-const addVariant = () => { form.variants.push({ spec: '', color: '', price: 0, stock: 0 }); };
-const removeVariant = (index) => { form.variants.splice(index, 1); };
-
-const handleSubmit = async () => {
-  if (!form.name || !form.category_id) return alert("请填写基本信息");
-  if (form.variants.length === 0) return alert("请至少添加一种规格");
-  submitting.value = true;
+const handleConvert = async () => {
+  if(!form.target_category_id) return alert("请选择目标分类");
   try {
-    if (editingId.value) {
-      await api.put(`/products/${editingId.value}`, form);
-    } else {
-      await api.post('/products/', form);
-    }
+    await axios.post('/products/convert-from-cost', form);
+    alert("✅ 发布成功！该商品已上线。");
     showModal.value = false;
-    fetchData();
   } catch (e) {
-    alert("操作失败：" + (e.response?.data?.detail || "未知错误"));
-  } finally {
-    submitting.value = false;
+    alert("发布失败: " + (e.response?.data?.detail || e.message));
   }
 };
 
-const handleDelete = async (product) => {
-  if (!confirm(`确定删除 ${product.name} 及其所有规格吗？`)) return;
-  try {
-    await api.delete(`/products/${product.id}`);
-    fetchData();
-  } catch (e) { alert("删除失败"); }
-};
-
-onMounted(fetchData);
+onMounted(() => {
+  fetchCosts();
+  fetchCategories();
+});
 </script>
 
 <style scoped>
-/* 隐藏移动端滚动条 */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+.th-std { @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase; }
+.input-std { @apply w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none; }
+.lbl { @apply block text-xs font-bold text-gray-500 mb-1; }
 </style>

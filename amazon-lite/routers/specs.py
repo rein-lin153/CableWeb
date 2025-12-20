@@ -1,55 +1,81 @@
-# backend/routers/specs.py
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List, Optional
-import crud, models, schemas
-from database import get_db
-from deps import get_current_active_superuser # 假设你有这个依赖文件，如果没有，直接从main.py引入类似的逻辑
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+import models, schemas
+from dependencies import get_db, get_current_active_superuser
 
-router = APIRouter(
-    prefix="/specs",
-    tags=["technical-specs"]
-)
+router = APIRouter()
 
 # 1. 获取列表 (公开)
 @router.get("/", response_model=List[schemas.TechnicalSpecResponse])
-def read_specs(
+async def read_specs(
     skip: int = 0, 
     limit: int = 100, 
     category: Optional[str] = None, 
     search: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    return crud.get_technical_specs(db, skip=skip, limit=limit, category=category, search=search)
+    query = select(models.TechnicalSpec)
+    
+    if category:
+        query = query.filter(models.TechnicalSpec.category == category)
+    if search:
+        # 假设搜索的是 spec 的 name 字段
+        query = query.filter(models.TechnicalSpec.name.contains(search))
+        
+    result = await db.execute(query.offset(skip).limit(limit))
+    return result.scalars().all()
 
 # 2. 创建 (管理员)
 @router.post("/", response_model=schemas.TechnicalSpecResponse, status_code=201)
-def create_spec(
+async def create_spec(
     spec: schemas.TechnicalSpecCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: models.User = Depends(get_current_active_superuser)
 ):
-    return crud.create_technical_spec(db, spec)
+    db_spec = models.TechnicalSpec(**spec.dict())
+    db.add(db_spec)
+    await db.commit()
+    await db.refresh(db_spec)
+    return db_spec
 
 # 3. 更新 (管理员)
 @router.put("/{spec_id}", response_model=schemas.TechnicalSpecResponse)
-def update_spec(
+async def update_spec(
     spec_id: int,
     spec_update: schemas.TechnicalSpecUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: models.User = Depends(get_current_active_superuser)
 ):
-    spec = crud.update_technical_spec(db, spec_id, spec_update)
-    if not spec:
+    # 先查询是否存在
+    result = await db.execute(select(models.TechnicalSpec).filter(models.TechnicalSpec.id == spec_id))
+    db_spec = result.scalars().first()
+    
+    if not db_spec:
         raise HTTPException(status_code=404, detail="Spec not found")
-    return spec
+    
+    # 更新字段
+    update_data = spec_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_spec, key, value)
+        
+    await db.commit()
+    await db.refresh(db_spec)
+    return db_spec
 
 # 4. 删除 (管理员)
 @router.delete("/{spec_id}", status_code=204)
-def delete_spec(
+async def delete_spec(
     spec_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: models.User = Depends(get_current_active_superuser)
 ):
-    if not crud.delete_technical_spec(db, spec_id):
+    result = await db.execute(select(models.TechnicalSpec).filter(models.TechnicalSpec.id == spec_id))
+    db_spec = result.scalars().first()
+    
+    if not db_spec:
         raise HTTPException(status_code=404, detail="Spec not found")
+        
+    await db.delete(db_spec)
+    await db.commit()

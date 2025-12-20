@@ -3,6 +3,7 @@ from sqlalchemy import Boolean, Column, Integer, String, Float, DateTime, Foreig
 from sqlalchemy.orm import relationship, backref
 from database import Base
 from datetime import datetime
+from sqlalchemy import JSON # 🟢 引入 JSON 类型
 
 # ============================
 # 1. 枚举定义
@@ -62,32 +63,36 @@ class TokenBlocklist(Base):
 # ============================
 class Category(Base):
     __tablename__ = "categories"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)
-    description = Column(String, nullable=True)
-    
-    parent_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
-    children = relationship(
-        "Category",
-        backref=backref("parent", remote_side=[id]),
-        cascade="all, delete"
-    )
-    products = relationship("Product", back_populates="category_rel")
 
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    # 🟢 [新增] 父级ID (自关联)
+    parent_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    
+    # 关系
+    products = relationship("Product", back_populates="category")
+    # 🟢 [新增] 子分类关系
+    children = relationship("Category", backref=backref("parent", remote_side=[id]))
+# 2. 升级产品表 (关联成本)
 class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
+    # ... (保留 name, description 等原有字段) ...
     name = Column(String, index=True)
     description = Column(String)
-    image_url = Column(String)
-    unit = Column(String, default="卷")
-    has_variants = Column(Boolean, default=True)
-    
+    price = Column(Float)
+    is_active = Column(Boolean, default=True)
+    image_url = Column(String, nullable=True)
     category_id = Column(Integer, ForeignKey("categories.id"))
-    category_rel = relationship("Category", back_populates="products")
-    variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
+
+    # 🟢 [新增] 关联成本ID (用于追踪该商品来自哪个成本核算)
+    cost_id = Column(Integer, ForeignKey("product_costs.id"), nullable=True)
+
+    category = relationship("Category", back_populates="products")
+    variants = relationship("ProductVariant", back_populates="product")
+    # 🟢 [新增] 关系
+    cost_source = relationship("ProductCost")
 
 class ProductVariant(Base):
     __tablename__ = "product_variants"
@@ -224,6 +229,7 @@ class CopperPrice(Base):
     exchange_rate = Column(Float, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
+
 class TechnicalSpec(Base):
     __tablename__ = "technical_specs"
     id = Column(Integer, primary_key=True, index=True)
@@ -233,3 +239,44 @@ class TechnicalSpec(Base):
     actual_param = Column(String)
     feature = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class ProductCost(Base):
+    __tablename__ = "product_costs"
+    id = Column(Integer, primary_key=True, index=True)
+    reference_price = Column(Float, default=0.0) # 参考售价 (成本+15%)
+    
+    spec_name = Column(String, index=True, nullable=False)
+    category = Column(String, index=True, nullable=True)
+    remark = Column(String, nullable=True)
+
+    # 🟢 [核心升级] 
+    # 材质: "Cu" (铜), "Al" (铝)
+    material = Column(String, default="Cu", nullable=False)
+    
+    # 核心结构 (JSON list)
+    # 存储格式示例: 
+    # [
+    #   {"cores": 3, "gauge": 1.35, "strands": 7},  // 3*10 部分
+    #   {"cores": 1, "gauge": 1.04, "strands": 7}   // 1*6 部分
+    # ]
+    core_structure = Column(JSON, nullable=False) 
+
+    total_weight = Column(Float, nullable=False)  # 整卷总重 (kg)
+    length = Column(Float, default=100.0)         # 长度 (m)
+    
+    # 🟢 [价格参数]
+    # 绝缘类型 (用于备注，如 PVC, XLPE)
+    insulation_type = Column(String, default="PVC") 
+    
+    copper_price = Column(Float, nullable=False)  # 导体单价 (铜/铝)
+    pvc_price = Column(Float, nullable=False)     # 非导体材料均价 (绝缘+填充+护套)
+    labor_cost = Column(Float, default=0.0)       # 人工
+
+    # [计算结果]
+    copper_weight = Column(Float) # 导体总重
+    copper_amount = Column(Float) # 导体总金额
+    pvc_weight = Column(Float)    # 塑料总重
+    pvc_amount = Column(Float)    # 塑料总金额
+    total_cost = Column(Float)    # 总成本
+
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

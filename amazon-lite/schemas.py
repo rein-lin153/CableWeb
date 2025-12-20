@@ -308,3 +308,65 @@ class CopperDisplayResponse(BaseModel):
 
 # 解决 Pydantic 递归模型引用
 CategoryResponse.model_rebuild()
+
+# 🟢 [新增] 单组核心的结构定义
+class CoreGroup(BaseModel):
+    cores: int        # 芯数 (如 3)
+    strands: int      # 每芯根数 (如 7)
+    gauge: float      # 单丝直径 (mm)
+
+# 基础输入字段
+class CostBase(BaseModel):
+    spec_name: str
+    category: Optional[str] = None
+    remark: Optional[str] = None
+    
+    material: str = "Cu"       # Cu / Al
+    insulation_type: str = "PVC"
+    
+    # 🟢 [升级] 支持多组核心
+    core_structure: List[CoreGroup] 
+    
+    total_weight: float
+    length: float = 100.0
+    copper_price: float
+    pvc_price: float
+    labor_cost: float
+
+class CostCreate(CostBase):
+    pass
+
+class CostUpdate(CostBase):
+    pass
+
+# 返回给管理员的完整数据
+class CostResponse(CostBase):
+    id: int
+    copper_weight: float
+    copper_amount: float
+    pvc_weight: float
+    pvc_amount: float
+    total_cost: float
+    updated_at: datetime
+    reference_price: float # [新增]
+    class Config:
+        from_attributes = True
+
+    # 🟢 分类树结构
+class CategoryTree(BaseModel):
+    id: int
+    name: str
+    parent_id: Optional[int] = None
+    children: List['CategoryTree'] = [] # 递归结构
+    
+    class Config:
+        from_attributes = True
+
+# 🟢 转换请求体
+class ConvertCostToProduct(BaseModel):
+    cost_id: int
+    target_category_id: int # 必须指定一个公共分类
+    name: str # 允许修改名称
+    price: float # 允许修改建议售价
+    description: Optional[str] = None
+    image_url: Optional[str] = None
