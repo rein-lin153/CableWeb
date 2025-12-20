@@ -287,6 +287,8 @@ class ProductCost(Base):
     pvc_amount = Column(Float)
     total_cost = Column(Float)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # 🟢 [新增] 标记是否已转为商品
+    is_converted = Column(Boolean, default=False)
 
 # ==========================================
 # 4. Schemas (Pydantic)
@@ -587,6 +589,7 @@ class CostResponse(CostBase):
     total_cost: float
     updated_at: datetime
     reference_price: float
+    is_converted: bool = False 
     class Config:
         from_attributes = True
 
@@ -946,15 +949,42 @@ async def create_category(cat: CategoryCreate, db: AsyncSession = Depends(get_db
 
 @products_router.post("/convert-from-cost", response_model=ProductResponse)
 async def convert_cost_to_product(payload: ConvertCostToProduct, db: AsyncSession = Depends(get_db), _=Depends(get_current_active_superuser)):
+    # 1. 检查成本记录
     cost_res = await db.execute(select(ProductCost).filter(ProductCost.id == payload.cost_id))
     cost_item = cost_res.scalars().first()
     if not cost_item: raise HTTPException(status_code=404, detail="Cost record not found")
-    new_product = Product(name=payload.name, description=payload.description, price=payload.price, category_id=payload.target_category_id, image_url=payload.image_url, cost_id=cost_item.id)
+
+    # 2. 🟢 [新增] 检查是否已存在同名且同分类的商品
+    exist_query = select(Product).filter(
+        Product.name == payload.name, 
+        Product.category_id == payload.target_category_id
+    )
+    existing_product = (await db.execute(exist_query)).scalars().first()
+    if existing_product:
+        raise HTTPException(status_code=400, detail=f"该分类下已存在名为 '{payload.name}' 的商品，请勿重复添加。")
+
+    # 3. 创建商品
+    new_product = Product(
+        name=payload.name, description=payload.description, price=payload.price, 
+        category_id=payload.target_category_id, image_url=payload.image_url, cost_id=cost_item.id
+    )
     db.add(new_product)
     await db.flush()
-    new_variant = ProductVariant(product_id=new_product.id, spec=cost_item.spec_name, color="默认", price=payload.price, stock=9999, sku_code=f"AUTO-{cost_item.id}", copper_weight=cost_item.copper_weight, process_cost=(cost_item.labor_cost + cost_item.pvc_amount))
+
+    # 4. 创建默认变体
+    new_variant = ProductVariant(
+        product_id=new_product.id, spec=cost_item.spec_name, color="默认", 
+        price=payload.price, stock=9999, sku_code=f"AUTO-{cost_item.id}", 
+        copper_weight=cost_item.copper_weight, process_cost=(cost_item.labor_cost + cost_item.pvc_amount)
+    )
     db.add(new_variant)
+    
+    # 5. 🟢 [新增] 更新成本记录状态
+    cost_item.is_converted = True
+
     await db.commit()
+    
+    # 6. 返回完整结构
     return (await db.execute(select(Product).options(selectinload(Product.variants)).filter(Product.id == new_product.id))).scalars().first()
 
 @products_router.get("/", response_model=List[ProductResponse])
@@ -981,25 +1011,61 @@ async def create_product(product: ProductCreate, db: AsyncSession = Depends(get_
     return db_product
 
 # --- Orders Router ---
-orders_router = APIRouter(prefix="/api/v1/orders", tags=["Orders"])
-@orders_router.get("/cart/", response_model=List[CartItemResponse])
+# --- Cart Router (🟢 新增独立路由，解决前端 /api/v1/cart/ 404) ---
+cart_router = APIRouter(prefix="/api/v1/cart", tags=["Cart"])
+
+@cart_router.get("/", response_model=List[CartItemResponse])
 async def read_cart(db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)):
     items = await get_cart_items(db, current_user.id)
-    return [{"id": i.id, "variant_id": i.variant_id, "quantity": i.quantity, "product_name": i.variant.product.name, "spec": i.variant.spec, "price": i.variant.price, "subtotal": i.variant.price * i.quantity, "image_url": i.variant.product.image_url} for i in items if i.variant and i.variant.product]
+    # 构造返回数据
+    return [
+        {
+            "id": i.id, 
+            "variant_id": i.variant_id, 
+            "quantity": i.quantity, 
+            "product_name": i.variant.product.name, 
+            "spec": i.variant.spec, 
+            "price": i.variant.price, 
+            "subtotal": i.variant.price * i.quantity, 
+            "image_url": i.variant.product.image_url
+        } 
+        for i in items if i.variant and i.variant.product
+    ]
 
-@orders_router.post("/cart/", response_model=CartItemResponse)
+@cart_router.post("/", response_model=CartItemResponse)
 async def add_to_cart(cart_data: CartItemCreate, db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)):
     res = await db.execute(select(ProductVariant).filter(ProductVariant.id == cart_data.variant_id))
     if not res.scalars().first(): raise HTTPException(status_code=404, detail="Variant not found")
+    
     c_res = await db.execute(select(CartItem).filter(CartItem.user_id==current_user.id, CartItem.variant_id==cart_data.variant_id))
-    if item := c_res.scalars().first(): item.quantity += cart_data.quantity
+    if item := c_res.scalars().first(): 
+        item.quantity += cart_data.quantity
     else: 
         item = CartItem(user_id=current_user.id, variant_id=cart_data.variant_id, quantity=cart_data.quantity)
         db.add(item)
     await db.commit()
+    
     query = select(CartItem).options(selectinload(CartItem.variant).selectinload(ProductVariant.product)).filter(CartItem.id == item.id)
     full_item = (await db.execute(query)).scalars().first()
-    return {"id": full_item.id, "variant_id": full_item.variant_id, "quantity": full_item.quantity, "product_name": full_item.variant.product.name, "price": full_item.variant.price, "subtotal": full_item.variant.price * full_item.quantity}
+    return {
+        "id": full_item.id, 
+        "variant_id": full_item.variant_id, 
+        "quantity": full_item.quantity, 
+        "product_name": full_item.variant.product.name, 
+        "price": full_item.variant.price, 
+        "subtotal": full_item.variant.price * full_item.quantity
+    }
+
+# 🟢 [新增] 删除购物车条目接口 (前端 useCart.js 需要)
+@cart_router.delete("/{id}")
+async def delete_cart_item(id: int, db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)):
+    res = await db.execute(select(CartItem).filter(CartItem.id == id, CartItem.user_id == current_user.id))
+    item = res.scalars().first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    await db.delete(item)
+    await db.commit()
+    return {"ok": True}
 
 @orders_router.post("/", response_model=OrderResponse)
 async def create_order(db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)):
@@ -1126,6 +1192,62 @@ def calculate_copper_usd_price(market_cny: float, exchange_rate: float, category
     elif "BV" in cat_upper: surcharge = PROCESS_FEES["BV"]
     return ((base_cny + surcharge) / exchange_rate) / 1000.0
 
+
+# 🟢 [新增] 更新成本记录
+@admin_costs_router.put("/{id}", response_model=CostResponse)
+async def update_cost_record(id: int, cost: CostUpdate, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(ProductCost).filter(ProductCost.id == id))
+    db_cost = res.scalars().first()
+    if not db_cost:
+        raise HTTPException(status_code=404, detail="Cost record not found")
+    
+    # 更新字段
+    cost_data = cost.dict(exclude_unset=True)
+    for key, value in cost_data.items():
+        setattr(db_cost, key, value)
+    
+    # 重新计算逻辑 (这部分逻辑最好封装，但为了单文件直接写在这里)
+    density = 0.214 if db_cost.material == "Al" else 0.7
+    # 注意：core_structure 是 JSON 类型，需要处理成对象列表计算
+    # 这里简化处理，假设前端传来的数据是正确的
+    core_struct_list = cost.core_structure if cost.core_structure else db_cost.core_structure
+    
+    # 重新计算重量和金额
+    # 注意：如果你用的是 Pydantic model 传进来的 core_structure，它是一个 List[CoreGroup] 对象
+    # 但如果是从数据库取的，可能是 dict。这里做一下兼容
+    def get_val(obj, key):
+        return getattr(obj, key) if hasattr(obj, key) else obj[key]
+
+    total_cw = 0.0
+    for g in core_struct_list:
+        gauge = get_val(g, 'gauge')
+        strands = get_val(g, 'strands')
+        cores = get_val(g, 'cores')
+        total_cw += (gauge**2 * strands * cores * density * db_cost.length) / 100.0
+
+    db_cost.copper_weight = round(total_cw, 4)
+    db_cost.copper_amount = round(total_cw * db_cost.copper_price, 2)
+    db_cost.pvc_weight = max(0.0, round(db_cost.total_weight - total_cw, 4))
+    db_cost.pvc_amount = round(db_cost.pvc_weight * db_cost.pvc_price, 2)
+    db_cost.total_cost = round(db_cost.copper_amount + db_cost.pvc_amount + db_cost.labor_cost, 2)
+    db_cost.reference_price = round(db_cost.total_cost * 1.15, 2)
+    db_cost.updated_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(db_cost)
+    return db_cost
+
+# 🟢 [新增] 删除成本记录
+@admin_costs_router.delete("/{id}")
+async def delete_cost_record(id: int, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(ProductCost).filter(ProductCost.id == id))
+    db_cost = res.scalars().first()
+    if not db_cost:
+        raise HTTPException(status_code=404, detail="Cost record not found")
+    await db.delete(db_cost)
+    await db.commit()
+    return {"ok": True}
+
 # 🟢 关键修复: 添加 /categories 接口 (解决 404 /api/v1/admin/costs/categories)
 @admin_costs_router.get("/categories", response_model=List[str])
 async def get_cost_categories(db: AsyncSession = Depends(get_db)):
@@ -1197,6 +1319,7 @@ app.include_router(inquiries_router)
 app.include_router(specs_router)
 app.include_router(admin_costs_router)
 app.include_router(categories_router)
+app.include_router(cart_router)
 
 # ==========================================
 # 10. Start
