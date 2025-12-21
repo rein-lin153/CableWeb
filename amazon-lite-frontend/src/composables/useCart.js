@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
 import api from '../api/axios';
 import { useAuth } from './useAuth';
+import router from '../router'; // 【新增】引入路由，以便跳转
 
 // 全局状态
 const cartItems = ref([]);
@@ -43,15 +44,28 @@ export function useCart() {
     }
   };
 
+  // 【重写】submitOrder 方法
   const submitOrder = async () => {
     loading.value = true;
     try {
-      await api.post('/orders/');
-      cartItems.value = []; 
-      isCartOpen.value = false; 
-      alert('订单已提交，请等待后台专员确认价格及发货时间。');
+      const res = await api.post('/orders/');
+      // 假设后端返回了创建的订单对象，包含 id
+      const newOrder = res.data; 
+      
+      // 1. 清空本地购物车状态
+      cartItems.value = [];
+      isCartOpen.value = false;
+      
+      // 2. 友好提示（可选，如果使用了 Toast 组件最好）
+      // alert('下单成功！'); 
+      
+      // 3. 跳转到订单列表或详情页
+      router.push('/orders/my');
+      
     } catch (e) {
-      alert('下单失败：' + (e.response?.data?.detail || '未知错误'));
+      console.error(e);
+      const msg = e.response?.data?.detail || '网络异常';
+      alert(`下单失败：${msg}`);
     } finally {
       loading.value = false;
     }

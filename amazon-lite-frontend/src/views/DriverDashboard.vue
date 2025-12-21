@@ -1,85 +1,107 @@
 <template>
-  <div class="min-h-screen bg-gray-100 pb-24">
-    <div class="bg-indigo-600 text-white p-4 shadow-md sticky top-0 z-20">
-      <div class="flex justify-between items-center">
-        <h1 class="text-lg font-bold flex items-center">
-          <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-          派送员工作台
+  <div class="min-h-screen bg-gray-900 pb-24 font-sans text-gray-100">
+    <div class="bg-gray-800 border-b border-gray-700 p-4 sticky top-0 z-30 shadow-xl">
+      <div class="flex justify-between items-center mb-4">
+        <h1 class="text-lg font-bold flex items-center text-white">
+          <div class="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center mr-3 shadow-lg shadow-orange-600/20">
+            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </div>
+          配送任务终端
         </h1>
-        <button @click="logout" class="text-xs bg-indigo-800/50 hover:bg-indigo-800 px-3 py-1.5 rounded transition-colors">退出</button>
+        <button @click="logout" class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-lg transition-colors border border-gray-600">
+          下班/退出
+        </button>
       </div>
       
-      <div class="mt-3 flex justify-between items-end text-xs opacity-90 bg-indigo-700/30 p-2 rounded-lg">
-        <div>
-          <div class="flex items-center mb-1">
-            <span class="relative flex h-2 w-2 mr-2">
-              <span v-if="isTracking" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2" :class="isTracking ? 'bg-green-400' : 'bg-red-400'"></span>
-            </span>
-            <span class="font-mono">{{ lastUpdateTime || '等待定位...' }}</span>
+      <div class="flex justify-between items-center text-xs bg-black/30 p-3 rounded-xl border border-gray-700/50 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+          <div class="relative flex h-3 w-3">
+            <span v-if="isTracking" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3" :class="isTracking ? 'bg-green-500' : 'bg-red-500'"></span>
           </div>
-          <div>精度: {{ accuracy }} 米</div>
+          <div>
+            <div class="font-mono text-gray-300">{{ lastUpdateTime || '等待 GPS 信号...' }}</div>
+            <div class="text-[10px] text-gray-500">精度范围: ±{{ accuracy }}米</div>
+          </div>
         </div>
         <div class="text-right">
-          <div v-if="wakeLock" class="text-green-300">⚡ 屏幕常亮中</div>
-          <div v-else class="text-yellow-300">⚠️ 请保持屏幕开启</div>
+          <div v-if="wakeLock" class="text-green-400 font-bold flex items-center gap-1">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            屏幕保持常亮
+          </div>
+          <div v-else class="text-yellow-400 flex items-center gap-1 animate-pulse">
+            ⚠️ 请点击页面激活常亮
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="p-4 space-y-4">
-      <div v-if="loading" class="text-center py-10 text-gray-500">正在加载任务...</div>
+    <div class="p-4 space-y-6">
+      <div v-if="loading" class="text-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+        <span class="text-gray-500 text-sm">正在同步任务列表...</span>
+      </div>
       
-      <div v-else-if="tasks.length === 0" class="flex flex-col items-center justify-center py-16 text-gray-400">
-        <svg class="w-16 h-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-        <p>暂无待派送任务</p>
-        <button @click="fetchTasks" class="mt-4 text-indigo-600 text-sm font-bold">刷新列表</button>
+      <div v-else-if="tasks.length === 0" class="flex flex-col items-center justify-center py-20 text-gray-500">
+        <div class="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-4">
+          <svg class="w-10 h-10 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+        </div>
+        <p class="font-medium">暂无待配送任务</p>
+        <p class="text-xs text-gray-600 mt-2">金边市区如有新单将自动推送</p>
+        <button @click="fetchTasks" class="mt-6 px-6 py-2 bg-gray-800 rounded-full text-sm font-bold text-gray-300 hover:bg-gray-700">刷新列表</button>
       </div>
 
-      <div v-else v-for="task in tasks" :key="task.id" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 relative overflow-hidden">
-        <div class="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-indigo-50 rounded-full blur-xl"></div>
+      <div v-else v-for="task in tasks" :key="task.id" class="bg-gray-800 rounded-2xl p-5 shadow-lg border border-gray-700 relative overflow-hidden group">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
-        <div class="flex justify-between items-start mb-4 relative z-10">
+        <div class="flex justify-between items-start mb-5 relative z-10">
           <div>
-            <div class="flex items-center">
-              <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded mr-2">#{{ task.id }}</span>
-              <span class="text-sm text-gray-500">{{ new Date(task.created_at).toLocaleTimeString() }}</span>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="bg-orange-900/50 text-orange-400 border border-orange-500/30 text-xs font-bold px-2 py-0.5 rounded">#{{ task.id }}</span>
+              <span class="bg-blue-900/30 text-blue-400 border border-blue-500/30 text-xs font-bold px-2 py-0.5 rounded">金边专送</span>
             </div>
-            <p class="font-bold text-gray-900 mt-1">{{ task.user_email }}</p>
+            <p class="font-bold text-lg text-white mt-2">{{ task.contact_name || '客户' }} <span class="text-gray-400 text-sm font-normal">{{ task.contact_phone }}</span></p>
+            <p class="text-gray-400 text-xs mt-1 max-w-[80%] truncate">{{ task.shipping_address || '金边市堆谷区...' }}</p>
           </div>
-          <a href="tel:10086" class="bg-green-50 text-green-600 w-10 h-10 rounded-full flex items-center justify-center shadow-sm hover:bg-green-100 transition-colors">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-          </a>
+          <div class="flex flex-col gap-2">
+            <a :href="`tel:${task.contact_phone}`" class="bg-green-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg hover:bg-green-500 transition-all active:scale-95">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+            </a>
+            <a :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.shipping_address)}`" target="_blank" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg hover:bg-blue-500 transition-all active:scale-95">
+               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </a>
+          </div>
         </div>
 
-        <div class="border-t border-dashed border-gray-200 py-3 relative z-10">
-          <ul class="text-sm space-y-1">
-            <li v-for="item in task.items" :key="item.id" class="flex justify-between">
-              <span class="text-gray-700 truncate w-3/4">{{ item.product_name }}</span>
-              <span class="text-gray-900 font-medium">x{{ item.quantity }}</span>
+        <div class="bg-gray-900/50 rounded-xl p-4 mb-5 border border-gray-700">
+          <ul class="text-sm space-y-2">
+            <li v-for="item in task.items" :key="item.id" class="flex justify-between items-center">
+              <span class="text-gray-300 truncate w-3/4">{{ item.product_name }}</span>
+              <span class="text-white font-mono font-bold">x{{ item.quantity }}</span>
             </li>
           </ul>
         </div>
 
-        <div class="mt-2 bg-gray-50 p-3 rounded-lg border border-gray-100 relative z-10">
-          <label class="flex items-center justify-center w-full h-12 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors" :class="{'border-green-400 bg-green-50': task.uploadFile}">
+        <div class="relative z-10">
+          <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-600 rounded-xl cursor-pointer hover:bg-gray-700/50 transition-all mb-3 group-hover:border-gray-500" :class="{'border-green-500/50 bg-green-900/20': task.uploadFile}">
             <input type="file" accept="image/*" capture="environment" class="hidden" @change="(e) => handleFileSelect(e, task)">
-            <span v-if="!task.uploadFile" class="text-xs text-gray-500 flex items-center">
-              <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              点击拍摄到货凭证
-            </span>
-            <span v-else class="text-xs text-green-600 font-bold flex items-center">
-              <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-              照片已就绪 (点击重拍)
-            </span>
+            
+            <div v-if="!task.uploadFile" class="text-center">
+              <svg class="w-6 h-6 mx-auto text-gray-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <span class="text-xs text-gray-400">拍摄现场/签收单照片</span>
+            </div>
+            <div v-else class="text-center">
+              <svg class="w-6 h-6 mx-auto text-green-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+              <span class="text-xs text-green-400 font-bold">照片已就绪 (点击重拍)</span>
+            </div>
           </label>
           
           <button 
             @click="completeTask(task)" 
             :disabled="!task.uploadFile"
-            class="mt-3 w-full bg-gray-900 text-white py-3 rounded-lg font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center"
+            class="w-full bg-orange-600 hover:bg-orange-500 disabled:bg-gray-700 disabled:text-gray-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-all active:scale-95 flex justify-center items-center"
           >
-            确认送达
+            确认送达 (Complete)
           </button>
         </div>
       </div>
@@ -103,15 +125,13 @@ const lastUpdateTime = ref('');
 const accuracy = ref(0);
 const isTracking = ref(false);
 const wakeLock = ref(null);
-
 let intervalId = null;
 
-// 1. 获取任务
 const fetchTasks = async () => {
   loading.value = true;
   try {
     const res = await api.get('/orders/driver/tasks');
-    // 保留之前已选的文件（如果有），防止刷新列表时丢失
+    // 保留文件缓存逻辑
     const oldTasksMap = new Map(tasks.value.map(t => [t.id, t.uploadFile]));
     tasks.value = res.data.map(t => ({ 
       ...t, 
@@ -120,29 +140,23 @@ const fetchTasks = async () => {
   } catch (e) { console.error(e); } finally { loading.value = false; }
 };
 
-// 2. 发送位置的核心函数 (单次)
 const sendLocation = () => {
   if (!navigator.geolocation) return;
-
   navigator.geolocation.getCurrentPosition(
     async (position) => {
       isTracking.value = true;
       const { latitude, longitude, accuracy: acc } = position.coords;
-      
       accuracy.value = Math.round(acc);
-      lastUpdateTime.value = new Date().toLocaleTimeString();
+      lastUpdateTime.value = new Date().toLocaleTimeString('en-GB');
 
-      // 只更新那些状态是 'delivering' 的订单
-      const activeTasks = tasks.value.filter(t => t.status === 'delivering' || true); // 简化：所有任务都更新，后端会过滤
-
+      // 仅当有任务时才上传位置
+      const activeTasks = tasks.value; 
       if (activeTasks.length > 0) {
+        // 批量通知所有正在进行的订单，或者只通知后端“司机”位置
+        // 这里假设是基于订单维度的更新
         for (const task of activeTasks) {
           try {
-            // 【关键修改】使用 POST Body 发送数据，而不是 URL params
-            await api.post(`/orders/${task.id}/location`, { 
-              lat: latitude, 
-              lng: longitude 
-            });
+            await api.post(`/orders/${task.id}/location`, { lat: latitude, lng: longitude });
           } catch (e) { console.error('位置上传失败', e); }
         }
       }
@@ -150,47 +164,36 @@ const sendLocation = () => {
     (err) => {
       console.error('定位失败', err);
       isTracking.value = false;
-      lastUpdateTime.value = '定位失败';
+      lastUpdateTime.value = 'GPS丢失';
     },
-    // 【关键修改】强制高精度，超时时间设为10秒
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 };
 
-// 3. 申请屏幕常亮 (防止手机锁屏导致JS停止)
 const requestWakeLock = async () => {
   if ('wakeLock' in navigator) {
     try {
       wakeLock.value = await navigator.wakeLock.request('screen');
-      console.log('屏幕常亮已开启');
-    } catch (err) {
-      console.error(`${err.name}, ${err.message}`);
-    }
+    } catch (err) { console.error(err); }
   }
 };
 
-// 4. 处理图片
 const handleFileSelect = (event, task) => {
   const file = event.target.files[0];
   if (file) task.uploadFile = file;
 };
 
-// 5. 完成订单
 const completeTask = async (task) => {
-  if (!task.uploadFile) return alert('请先拍摄到货照片');
-  if (!confirm(`确认订单 #${task.id} 已安全送达？`)) return;
+  if (!task.uploadFile) return;
+  if (!confirm(`确认送达 #${task.id} ？`)) return;
 
   try {
     const formData = new FormData();
     formData.append('file', task.uploadFile);
-    await api.post(`/orders/${task.id}/complete`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    alert('任务完成，辛苦了！');
+    await api.post(`/orders/${task.id}/complete`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    alert('✅ 送达成功');
     fetchTasks();
-  } catch (e) { 
-    alert('提交失败: ' + (e.response?.data?.detail || '未知错误')); 
-  }
+  } catch (e) { alert('提交失败: ' + (e.response?.data?.detail || '未知错误')); }
 };
 
 const logout = () => {
@@ -200,27 +203,15 @@ const logout = () => {
 
 onMounted(() => {
   fetchTasks();
-  
-  // 1. 立即获取一次位置
   sendLocation();
-  
-  // 2. 开启轮询：每 5 秒强制获取并上传一次
-  // 相比 watchPosition，setInterval 在手机浏览器中更稳定
-  intervalId = setInterval(() => {
-    sendLocation();
-    // 顺便静默刷新任务列表，查看有没有新指派的单
-    // fetchTasks(); // 如果担心流量可以注释掉这行
-  }, 5000);
-
-  // 3. 申请屏幕常亮
+  // 缩短轮询间隔，提升“看着车在地图上跑”的体验
+  intervalId = setInterval(() => { sendLocation(); }, 5000); 
   requestWakeLock();
-  
-  // 监听可见性变化，如果切回来，重新申请锁
   document.addEventListener('visibilitychange', async () => {
-    if (wakeLock.value !== null && document.visibilityState === 'visible') {
-      requestWakeLock();
-    }
+    if (wakeLock.value !== null && document.visibilityState === 'visible') requestWakeLock();
   });
+  // 点击页面任意位置尝试激活 WakeLock (应对浏览器限制)
+  document.addEventListener('click', requestWakeLock, { once: true });
 });
 
 onUnmounted(() => {

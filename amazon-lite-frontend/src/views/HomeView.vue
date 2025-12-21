@@ -1,54 +1,90 @@
 <template>
   <div class="bg-white">
 
-    <section class="relative h-[90vh] bg-gray-900 text-white overflow-hidden">
-      <div class="absolute inset-0 w-full h-full">
-        <div v-for="(banner, index) in banners" :key="index"
-          class="absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out"
-          :class="{ 'opacity-100 z-10': index === currentSlide, 'opacity-0 z-0': index !== currentSlide }">
-          <img :src="banner.image" :alt="banner.title"
-            class="w-full h-full object-cover opacity-60 transform scale-105 transition-transform duration-[10s]"
-            :class="{ 'scale-110': index === currentSlide }">
-          <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-gray-900/30"></div>
+    <section class="bg-[#0f172a] text-white pt-24 pb-12 min-h-[600px] flex items-center relative overflow-hidden">
+  <div class="absolute inset-0 z-0 opacity-20 bg-[url('/bz1.jpg')] bg-cover bg-center mix-blend-overlay"></div>
+  <div class="absolute inset-0 bg-gradient-to-r from-[#0f172a] via-[#0f172a]/90 to-transparent z-0"></div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+    
+    <div class="space-y-8 animate-fade-in-up">
+      <div>
+        <span class="text-orange-500 font-bold tracking-widest uppercase text-sm mb-2 block">Factory Direct Supply</span>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
+          源头工厂直销<br>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">今日下单，次日送达</span>
+        </h1>
+      </div>
+      
+      <p class="text-gray-400 text-lg max-w-xl leading-relaxed">
+        Amazon Cable 专注工业电缆制造 20 年。自有车队覆盖全境，为您节省 30% 中间商差价。支持工地现场验收，货到付款。
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-4">
+        <button @click="$router.push('/products')" class="px-8 py-4 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold text-lg transition-all shadow-lg shadow-orange-600/30 flex items-center justify-center">
+          查看现货库存
+          <svg class="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+        </button>
+        <button @click="showSmartInquiry = true" class="px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/30 backdrop-blur-sm text-white rounded-lg font-bold text-lg transition-all flex items-center justify-center">
+          上传清单 (BOM) 报价
+        </button>
+      </div>
+
+      <div class="pt-8 border-t border-gray-800 grid grid-cols-3 gap-6 text-center">
+        <div>
+          <div class="text-2xl font-bold text-white">GB/T</div>
+          <div class="text-xs text-gray-500 mt-1">严格执行国标</div>
+        </div>
+        <div>
+          <div class="text-2xl font-bold text-white">24h</div>
+          <div class="text-xs text-gray-500 mt-1">现货闪电发货</div>
+        </div>
+        <div>
+          <div class="text-2xl font-bold text-white">100%</div>
+          <div class="text-xs text-gray-500 mt-1">纯铜保检测</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-6 lg:p-8 backdrop-blur-md shadow-2xl">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-white flex items-center">
+          <span class="w-2 h-6 bg-orange-500 rounded-sm mr-3"></span>
+          今日铜价指数
+        </h3>
+        <span class="text-xs text-gray-400">更新于: {{ new Date().toLocaleDateString() }}</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-8">
+        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+          <div class="text-gray-400 text-xs mb-1">LME 伦敦铜 ($)</div>
+          <div class="text-2xl font-mono font-bold text-green-400">$9,120</div>
+          <div class="text-xs text-green-500 mt-1 flex items-center">▲ 1.2% <span class="text-gray-500 ml-1">昨日</span></div>
+        </div>
+        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+          <div class="text-gray-400 text-xs mb-1">SMM 长江现货 (¥)</div>
+          <div class="text-2xl font-mono font-bold text-orange-400">¥72,300</div>
+          <div class="text-xs text-orange-500 mt-1 flex items-center">▲ 0.5% <span class="text-gray-500 ml-1">昨日</span></div>
         </div>
       </div>
 
-      <div class="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 pt-10">
-        <div v-if="banners[currentSlide]" :key="currentSlide" class="animate-fade-up">
-          <span
-            class="inline-block py-1 px-3 rounded-full bg-orange-500/20 border border-orange-500/50 text-orange-300 text-xs font-bold tracking-widest uppercase mb-6 backdrop-blur-md">
-            {{ banners[currentSlide].tag }}
-          </span>
-          <h1
-            class="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight max-w-5xl text-shadow-xl">
-            <span v-html="banners[currentSlide].title"></span>
-          </h1>
-          <p class="text-lg md:text-xl font-light text-gray-200 mb-10 max-w-2xl mx-auto leading-relaxed">
-            {{ banners[currentSlide].subtitle }}
-          </p>
-        </div>
-
-        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 animate-fade-up animation-delay-200">
-          <button @click="showSmartInquiry = true"
-            class="bg-orange-600 text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-orange-500 transition-all hover:scale-105 shadow-[0_0_20px_rgba(234,88,12,0.5)] flex items-center justify-center group">
-            <svg class="w-6 h-6 mr-2 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            立即询价
-            <span class="ml-2 text-xs bg-white/20 px-2 py-0.5 rounded text-white font-normal group-hover:bg-white/30">上传图纸/清单</span>
-          </button>
-          
-          <button @click="scrollToProducts"
-            class="px-8 py-4 rounded-full font-bold text-lg text-white border-2 border-white/30 hover:bg-white/10 hover:border-white transition-all flex items-center justify-center backdrop-blur-sm cursor-pointer">
-            现货产品
-          </button>
+      <div class="space-y-4">
+        <h4 class="text-sm font-bold text-gray-300 uppercase tracking-wider">快速通道</h4>
+        <button @click="$router.push('/products?category=yjv')" class="w-full text-left px-4 py-3 bg-white/5 hover:bg-orange-600 hover:text-white border border-white/10 rounded-lg transition-colors flex justify-between items-center group">
+          <span class="font-medium text-gray-300 group-hover:text-white">YJV 电力电缆 (现货)</span>
+          <span class="text-gray-500 group-hover:text-white">→</span>
+        </button>
+        <button @click="$router.push('/products?category=bv')" class="w-full text-left px-4 py-3 bg-white/5 hover:bg-orange-600 hover:text-white border border-white/10 rounded-lg transition-colors flex justify-between items-center group">
+          <span class="font-medium text-gray-300 group-hover:text-white">BV 家装电线</span>
+          <span class="text-gray-500 group-hover:text-white">→</span>
+        </button>
+        <div class="text-center pt-2">
+           <a href="#" class="text-sm text-gray-500 hover:text-orange-400 underline decoration-dashed">下载 2025 最新产品选型手册 PDF</a>
         </div>
       </div>
-
-      <div class="absolute bottom-8 left-0 right-0 z-30 flex justify-center space-x-3">
-        <button v-for="(_, index) in banners" :key="index" @click="switchSlide(index)"
-          class="w-3 h-3 rounded-full transition-all duration-300"
-          :class="index === currentSlide ? 'bg-orange-500 w-8' : 'bg-white/50 hover:bg-white'"></button>
-      </div>
-    </section>
+    </div>
+  </div>
+</section>
 
     <div class="bg-gray-50 border-y border-gray-200 transition-colors duration-300"
       :class="currency === 'CNY' ? 'bg-red-50/30' : 'bg-blue-50/30'">
@@ -137,35 +173,7 @@
       </div>
     </main>
 
-    <section class="bg-white border-t border-gray-100 py-20">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-row justify-between items-end mb-10">
-          <div>
-            <h2 class="text-3xl font-bold text-gray-900 mb-2">行业资讯 & 动态</h2>
-            <p class="text-gray-500">聚焦电力传输前沿技术，分享企业最新里程碑</p>
-          </div>
-          <button @click="$router.push('/news')" class="group flex items-center text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors">
-            查看全部新闻
-            <div class="ml-2 w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-            </div>
-          </button>
-        </div>
-
-        <div v-if="newsLoading" class="text-center py-10 text-gray-400">加载资讯中...</div>
-        <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div v-for="news in newsList.slice(0, 3)" :key="news.id" @click="$router.push(`/news/${news.id}`)" class="group cursor-pointer flex flex-col hover:-translate-y-1 transition-transform duration-300">
-            <div class="aspect-video bg-gray-100 rounded-xl overflow-hidden mb-4 relative">
-              <img :src="news.image_url" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-              <div class="absolute bottom-0 left-0 bg-orange-600 text-white text-xs font-bold px-3 py-1 rounded-tr-lg">{{ new Date(news.created_at).toLocaleDateString() }}</div>
-            </div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors line-clamp-2">{{ news.title }}</h3>
-            <p class="text-sm text-gray-500 line-clamp-3 mb-4 flex-grow">{{ news.summary }}</p>
-            <div class="text-sm font-bold text-orange-600 group-hover:translate-x-1 transition-transform flex items-center mt-auto">阅读全文 &rarr;</div>
-          </div>
-        </div>
-      </div>
-    </section>
+    
 
     <footer class="bg-gray-950 py-20 text-gray-400 text-sm mt-0 border-t border-gray-900">
       <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
@@ -226,7 +234,7 @@ import { useI18n } from 'vue-i18n';
 
 const { isLoggedIn } = useAuth();
 const router = useRouter();
-const { products, loading, fetchProducts } = useProducts();
+const { products, loading, fetchAllData } = useProducts();
 const { t } = useI18n();
 const { addToCart } = useCart();
 
@@ -264,10 +272,6 @@ const banners = computed(() => [
   }
 ]);
 
-let slideInterval;
-const nextSlide = () => { currentSlide.value = (currentSlide.value + 1) % banners.value.length; };
-const switchSlide = (index) => { currentSlide.value = index; resetSlideTimer(); };
-const resetSlideTimer = () => { clearInterval(slideInterval); slideInterval = setInterval(nextSlide, 6000); };
 
 // 铜价
 const currency = ref('CNY');
@@ -280,16 +284,6 @@ const fetchMetalPrices = async () => {
   } catch (error) { console.error("无法获取实时铜价:", error); }
 };
 
-// 新闻
-const newsList = ref([]);
-const newsLoading = ref(false);
-const fetchNews = async () => {
-  newsLoading.value = true;
-  try {
-    const res = await api.get('/news/', { params: { limit: 3 } });
-    newsList.value = res.data;
-  } catch (error) { console.error("Fetch news failed", error); } finally { newsLoading.value = false; }
-};
 
 const getDisplayPrice = (product) => {
   if (product.variants && product.variants.length > 0) {
@@ -316,15 +310,12 @@ const handleAddToCart = async (items) => {
 let priceInterval = null;
 
 onMounted(() => {
-  fetchProducts();
-  resetSlideTimer();
+  fetchAllData(); // 调用新方法
   fetchMetalPrices();
   priceInterval = setInterval(fetchMetalPrices, 60000);
-  fetchNews();
 });
 
 onUnmounted(() => {
-  clearInterval(slideInterval);
   if (priceInterval) clearInterval(priceInterval);
 });
 </script>

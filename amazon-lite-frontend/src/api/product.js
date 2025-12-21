@@ -1,19 +1,13 @@
 // src/api/product.js
-import request from './request';
+// 1. 修改导入路径，指向统一的 axios 实例
+import api from './axios'; 
 
 // 获取产品列表 (对应后端 GET /products/)
 export function getProducts() {
-  return request({
-    url: '/products/',
-    method: 'get'
-  });
+  return api.get('/products/');
 }
 
 // 更新库存 (对应后端 PUT /products/{id})
 export function updateProductStock(id, data) {
-  return request({
-    url: `/products/${id}`,
-    method: 'put',
-    data // data 格式应为 { stock: 100 } 或 { price: 200 }
-  });
+  return api.put(`/products/${id}`, data);
 }

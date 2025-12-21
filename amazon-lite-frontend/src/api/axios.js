@@ -1,14 +1,20 @@
+// src/api/axios.js
 import axios from 'axios';
-import router from '../router';
-import { useToast } from '../composables/useToast'; // <--- 1. 导入
+import { getToken, removeToken, removeUser } from '../utils/auth';
+
+// 使用环境变量，如果没有配置则回退到 localhost
+// 注意：Vite 中环境变量必须以 VITE_ 开头
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 const instance = axios.create({
-  baseURL: 'https://192.168.1.76:8000/api/v1',
+  baseURL,
+  timeout: 10000, // 增加超时时间防止大文件上传失败
 });
 
+// 请求拦截器
 instance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -17,28 +23,23 @@ instance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// 响应拦截器
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
-    const { error: showError } = useToast(); // <--- 2. 获取报错方法
-
     if (error.response) {
       const status = error.response.status;
-      const detail = error.response.data?.detail || '未知错误';
       
-      // 401 未登录：静默跳转，或者提示
+      // 401 未授权：清理缓存并跳转登录
       if (status === 401) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user_info');
-        router.push('/login');
-        showError('登录已过期，请重新登录'); // 弹窗提示
-      } 
-      // 400/403/404/500 等：直接弹窗显示后端返回的 detail
-      else {
-        showError(detail); 
+        removeToken();
+        removeUser();
+        // 这里不直接引入 router 以避免循环依赖，使用原生跳转或抛出特定错误由组件处理
+        // 或者使用 window.location.href = '/login' (最稳妥的暴力跳转)
+        if (window.location.pathname !== '/login') {
+            window.location.href = '/login?expired=1'; 
+        }
       }
-    } else {
-      showError('网络连接失败，请检查服务器');
     }
     return Promise.reject(error);
   }

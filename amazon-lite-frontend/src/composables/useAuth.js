@@ -1,100 +1,75 @@
 // src/composables/useAuth.js
 import { ref } from 'vue';
 import api from '../api/axios';
+import { getToken, getUser, setUser, setToken, removeToken, removeUser } from '../utils/auth';
 
-// === 全局状态 (单例模式) ===
-// 这样无论在哪个组件引用 useAuth，状态都是同步的
+// 全局状态 (单例模式)
 const user = ref(null);
 const isLoggedIn = ref(false);
 
 export function useAuth() {
 
-  // 1. 初始化/恢复状态 (在 App.vue 挂载时调用)
+  // 1. 初始化状态
   const initializeAuth = async () => {
-    const token = localStorage.getItem('access_token');
-    const storedUser = localStorage.getItem('user_info');
+    const token = getToken();
+    const storedUser = getUser();
 
     if (token) {
       isLoggedIn.value = true;
-      
-      // A. 先尝试从本地缓存恢复 (速度快，防止页面闪烁)
       if (storedUser) {
-        try {
-          user.value = JSON.parse(storedUser);
-        } catch (e) {
-          console.error("解析用户信息失败", e);
-          localStorage.removeItem('user_info');
-        }
+        user.value = storedUser;
       }
-
-      // B. 后台静默更新用户信息 (确保角色/权限是最新的)
+      
+      // 后台静默更新
       try {
         const res = await api.get('/users/me');
         user.value = res.data;
-        // 更新缓存
-        localStorage.setItem('user_info', JSON.stringify(res.data));
+        setUser(res.data); // 更新本地存储
       } catch (e) {
-        console.error("获取最新用户信息失败", e);
-        // 如果 401 说明 token 过期，需要登出
-        if (e.response?.status === 401) {
-          logout();
-        }
+        // 如果 token 失效，api/axios.js 会处理
+        console.error("更新用户信息失败", e);
       }
     }
   };
 
-  // 2. 登录逻辑
+  // 2. 登录
   const login = async (email, password) => {
-    try {
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
 
-      const res = await api.post('/auth/login', formData, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
+    const res = await api.post('/auth/login', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
 
-      const token = res.data.access_token;
-      localStorage.setItem('access_token', token);
-      
-      // 设置状态
-      isLoggedIn.value = true;
-
-      // 【关键】登录成功后，立即获取并保存用户信息
-      // 很多后端登录接口只返回 token，不返回 user，所以需要单独查一次
-      const userRes = await api.get('/users/me');
-      user.value = userRes.data;
-      localStorage.setItem('user_info', JSON.stringify(userRes.data));
-
-      return true;
-    } catch (e) {
-      console.error('登录失败:', e);
-      throw e;
-    }
+    const token = res.data.access_token;
+    setToken(token); // 使用工具存 token
+    
+    isLoggedIn.value = true;
+    user.value = res.data.user; // 假设后端直接返回了 user，如果没返回则需再请求 /users/me
+    setUser(user.value);
+    
+    return true;
   };
 
-  // 3. 注册逻辑
+  // 3. 注册
   const register = async (email, password, companyName) => {
-    try {
-      await api.post('/users/', {
+    await api.post('/users/', {
         email,
         password,
         company_name: companyName,
-        username: email.split('@')[0], // 默认用户名
-        role: 'user' // 默认角色
-      });
-      // 注册后自动登录
-      await login(email, password);
-    } catch (e) {
-      throw e;
-    }
+        username: email.split('@')[0], 
+        role: 'user' 
+    });
+    // 注册后自动登录
+    await login(email, password);
   };
 
-  // 4. 登出逻辑
+  // 4. 登出
   const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user_info');
-    user.value = null;
+    removeToken();
+    removeUser();
+    user.value = null; // 【关键】重置全局状态
     isLoggedIn.value = false;
   };
 
@@ -104,6 +79,6 @@ export function useAuth() {
     login,
     register,
     logout,
-    initializeAuth // 导出这个新函数
+    initializeAuth
   };
 }

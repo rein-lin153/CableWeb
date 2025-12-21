@@ -36,16 +36,23 @@ from apscheduler.schedulers.background import BackgroundScheduler
 class Settings(BaseSettings):
     # 数据库配置
     DATABASE_URL: str = "sqlite+aiosqlite:///./amazon_cable.db"
+
+    # 从 .env 读取，若无则使用默认值（仅限开发环境）
     
+    
+    
+   
+
     # JWT 配置
-    SECRET_KEY: str = "your-secret-key-please-change-in-production"
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7天
     
     # 初始管理员配置
     FIRST_SUPERUSER: str = "admin@amazoncable.com"
-    FIRST_SUPERUSER_PASSWORD: str = "admin888"
+    FIRST_SUPERUSER_PASSWORD: str
 
+    model_config = SettingsConfigDict(env_file=".env")
     # API 配置
     SINA_API_URL: str = "http://hq.sinajs.cn/list=nf_CU0"
     EXCHANGE_RATE_API: str = "https://api.exchangerate-api.com/v4/latest/USD"
@@ -926,6 +933,7 @@ async def delete_category(id: int, db: AsyncSession = Depends(get_db), _ = Depen
     return {"ok": True}
 
 # --- Products Router ---
+
 products_router = APIRouter(prefix="/api/v1/products", tags=["Products"])
 @products_router.get("/categories/tree", response_model=List[CategoryTree])
 async def get_category_tree(db: AsyncSession = Depends(get_db)):
@@ -946,6 +954,25 @@ async def create_category(cat: CategoryCreate, db: AsyncSession = Depends(get_db
     db.add(db_cat)
     await db.commit()
     return (await db.execute(select(Category).options(selectinload(Category.children)).filter(Category.id==db_cat.id))).scalars().first()
+
+@products_router.delete("/categories/{id}")
+async def delete_product_category(id: int, db: AsyncSession = Depends(get_db), _ = Depends(get_current_active_superuser)):
+    """
+    解决前端调用 /api/v1/products/categories/{id} 报 404 的问题
+    """
+    res = await db.execute(select(Category).filter(Category.id == id))
+    cat = res.scalars().first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="分类不存在")
+    
+    # 检查是否有子分类
+    child_res = await db.execute(select(Category).filter(Category.parent_id == id))
+    if child_res.scalars().first():
+        raise HTTPException(status_code=400, detail="该分类下有关联子分类，请先处理子分类")
+        
+    await db.delete(cat)
+    await db.commit()
+    return {"ok": True}
 
 @products_router.post("/convert-from-cost", response_model=ProductResponse)
 async def convert_cost_to_product(payload: ConvertCostToProduct, db: AsyncSession = Depends(get_db), _=Depends(get_current_active_superuser)):
@@ -1010,21 +1037,71 @@ async def create_product(product: ProductCreate, db: AsyncSession = Depends(get_
     await db.refresh(db_product)
     return db_product
 
+@products_router.put("/{id}", response_model=ProductResponse)
+async def update_product(
+    id: int, 
+    product_in: ProductUpdate, 
+    db: AsyncSession = Depends(get_db), 
+    _=Depends(get_current_active_superuser)
+):
+    """
+    更新商品及其变体信息
+    """
+    # 1. 查找商品是否存在
+    res = await db.execute(
+        select(Product)
+        .options(selectinload(Product.variants))
+        .filter(Product.id == id)
+    )
+    db_product = res.scalars().first()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="商品不存在")
+
+    # 2. 更新基础字段
+    update_data = product_in.dict(exclude_unset=True)
+    for field in ["name", "description", "image_url", "category_id", "unit"]:
+        if field in update_data:
+            setattr(db_product, field, update_data[field])
+
+    # 3. 更新变体信息 (覆盖式更新)
+    if "variants" in update_data and update_data["variants"] is not None:
+        # 删除旧变体
+        await db.execute(delete(ProductVariant).where(ProductVariant.product_id == id))
+        # 插入新变体
+        for v_data in update_data["variants"]:
+            new_variant = ProductVariant(**v_data, product_id=id)
+            db.add(new_variant)
+
+    try:
+        await db.commit()
+        # 重新拉取完整数据返回
+        final_res = await db.execute(
+            select(Product)
+            .options(selectinload(Product.variants))
+            .filter(Product.id == id)
+        )
+        return final_res.scalars().first()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"保存失败: {str(e)}")
+
 # --- Orders Router ---
+orders_router = APIRouter(prefix="/api/v1/orders", tags=["Orders"])
 # --- Cart Router (🟢 新增独立路由，解决前端 /api/v1/cart/ 404) ---
 cart_router = APIRouter(prefix="/api/v1/cart", tags=["Cart"])
 
 @cart_router.get("/", response_model=List[CartItemResponse])
 async def read_cart(db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)):
     items = await get_cart_items(db, current_user.id)
-    # 构造返回数据
     return [
         {
             "id": i.id, 
             "variant_id": i.variant_id, 
             "quantity": i.quantity, 
             "product_name": i.variant.product.name, 
-            "spec": i.variant.spec, 
+            "spec": i.variant.spec,   # 🟢 确保包含
+            "color": i.variant.color, # 🟢 补全
+            "unit": i.variant.unit,   # 🟢 补全
             "price": i.variant.price, 
             "subtotal": i.variant.price * i.quantity, 
             "image_url": i.variant.product.image_url
@@ -1035,25 +1112,38 @@ async def read_cart(db: AsyncSession = Depends(get_db), current_user=Depends(get
 @cart_router.post("/", response_model=CartItemResponse)
 async def add_to_cart(cart_data: CartItemCreate, db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)):
     res = await db.execute(select(ProductVariant).filter(ProductVariant.id == cart_data.variant_id))
-    if not res.scalars().first(): raise HTTPException(status_code=404, detail="Variant not found")
+    variant = res.scalars().first()
+    if not variant: 
+        raise HTTPException(status_code=404, detail="产品规格不存在")
     
     c_res = await db.execute(select(CartItem).filter(CartItem.user_id==current_user.id, CartItem.variant_id==cart_data.variant_id))
-    if item := c_res.scalars().first(): 
+    item = c_res.scalars().first()
+    if item: 
         item.quantity += cart_data.quantity
     else: 
         item = CartItem(user_id=current_user.id, variant_id=cart_data.variant_id, quantity=cart_data.quantity)
         db.add(item)
+    
     await db.commit()
     
-    query = select(CartItem).options(selectinload(CartItem.variant).selectinload(ProductVariant.product)).filter(CartItem.id == item.id)
+    # 重新查询完整信息以满足 Response 校验
+    query = select(CartItem).options(
+        joinedload(CartItem.variant).joinedload(ProductVariant.product)
+    ).filter(CartItem.id == item.id)
     full_item = (await db.execute(query)).scalars().first()
+    
+    # 🟢 关键修复：返回所有 CartItemResponse 要求的字段
     return {
         "id": full_item.id, 
         "variant_id": full_item.variant_id, 
         "quantity": full_item.quantity, 
         "product_name": full_item.variant.product.name, 
+        "spec": full_item.variant.spec,    # 补全规格
+        "color": full_item.variant.color,  # 补全颜色
+        "unit": full_item.variant.unit,    # 补全单位
         "price": full_item.variant.price, 
-        "subtotal": full_item.variant.price * full_item.quantity
+        "subtotal": full_item.variant.price * full_item.quantity,
+        "image_url": full_item.variant.product.image_url
     }
 
 # 🟢 [新增] 删除购物车条目接口 (前端 useCart.js 需要)
@@ -1104,6 +1194,55 @@ async def assign_driver(order_id: int, req: AssignDriverRequest, db: AsyncSessio
     if not order: raise HTTPException(status_code=404, detail="Order not found")
     order.driver_id = req.driver_id
     order.status = OrderStatus.DELIVERING
+    await db.commit()
+    return await get_order_by_id(db, order_id)
+
+@orders_router.patch("/{order_id}/confirm", response_model=OrderResponse)
+async def confirm_order(
+    order_id: int, 
+    db: AsyncSession = Depends(get_db), 
+    _=Depends(get_current_active_superuser)
+):
+    """
+    确认订单：将订单状态从 'pending_confirmation' 改为 'confirmed'
+    """
+    order = await get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="订单不存在")
+    
+    if order.status != OrderStatus.PENDING_CONFIRMATION:
+        raise HTTPException(status_code=400, detail="只有待确认的订单可以执行此操作")
+
+    # 更新状态
+    order.status = OrderStatus.CONFIRMED
+    
+    # 提示：在此处可以根据业务逻辑添加具体的库存扣减操作
+    # 但由于当前 OrderItem 模型未存储 variant_id，建议后续优化数据结构
+    
+    await db.commit()
+    return await get_order_by_id(db, order_id)
+
+@orders_router.patch("/{order_id}/cancel", response_model=OrderResponse)
+async def cancel_order(
+    order_id: int, 
+    db: AsyncSession = Depends(get_db), 
+    _=Depends(get_current_active_superuser)
+):
+    """
+    作废订单：将订单状态改为 'cancelled'
+    """
+    order = await get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="订单不存在")
+
+    if order.status in [OrderStatus.COMPLETED, OrderStatus.CANCELLED]:
+        raise HTTPException(status_code=400, detail="已完成或已取消的订单无法再次作废")
+
+    # 更新状态
+    order.status = OrderStatus.CANCELLED
+    
+    # 提示：在此处可以添加库存返还逻辑
+    
     await db.commit()
     return await get_order_by_id(db, order_id)
 

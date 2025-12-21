@@ -135,7 +135,10 @@ watch(() => props.isOpen, (val) => {
 const uniqueSpecs = computed(() => {
   if (!props.product.variants) return [];
   const specs = props.product.variants.map(v => v.spec);
-  return [...new Set(specs)].sort(); // 去重并排序
+  // 【修复】使用 localeCompare 进行数字模式排序
+  return [...new Set(specs)].sort((a, b) => 
+    a.localeCompare(b, undefined, { numeric: true })
+  );
 });
 
 // 计算当前选中规格下的所有变体（颜色）

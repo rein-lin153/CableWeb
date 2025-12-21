@@ -6,13 +6,12 @@ import HomeView from '../views/HomeView.vue';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import ProductsView from '../views/ProductsView.vue';
-import NewsView from '../views/NewsView.vue';
-import NewsDetailView from '../views/NewsDetailView.vue';
 import OrderHistoryView from '../views/OrderHistoryView.vue';
 import InquiryList from '../views/InquiryList.vue';
 import TechSpecs from '../views/TechSpecs.vue';
 import CheckoutView from '../views/CheckoutView.vue'; // [新增] 引入结算页
 import UserInquiries from '../views/user/UserInquiries.vue';
+import { isAuthenticated, isAdmin } from '../utils/auth'; // 引入工具
 
 // --- 2. 专用页面 ---
 import DriverDashboard from '../views/DriverDashboard.vue';
@@ -22,7 +21,6 @@ import AdminLayout from '../views/admin/AdminLayout.vue';
 import Dashboard from '../views/admin/Dashboard.vue';
 import ProductManager from '../views/admin/ProductManager.vue';
 import UserManager from '../views/admin/UserManager.vue';
-import NewsManager from '../views/admin/NewsManager.vue';
 import OrderManager from '../views/admin/OrderManager.vue';
 import CategoryManager from '../views/admin/CategoryManager.vue';
 import CustomerManager from '../views/admin/CustomerManager.vue';
@@ -39,12 +37,10 @@ const routes = [
   { path: '/login', name: 'Login', component: LoginView },
   { path: '/register', name: 'Register', component: RegisterView },
   { path: '/products', name: 'Products', component: ProductsView },
-  { path: '/news', name: 'NewsList', component: NewsView },
-  { path: '/news/:id', name: 'NewsDetail', component: NewsDetailView },
   { path: '/specs', name: 'TechSpecs', component: TechSpecs },
   {
     path: '/my-inquiries',
-    name: 'MyInquiries',
+    name: 'UserInquiries', // 【修复】从 'MyInquiries' 改为 'UserInquiries'，避免重名
     component: UserInquiries,
     meta: { requiresAuth: true }
   },
@@ -67,10 +63,10 @@ const routes = [
   },
 
   // 询价相关
-  {
+{
     path: '/inquiries',
-    name: 'MyInquiries',
-    component: InquiryList,
+    name: 'InquiryList', // 【建议】这里也可以改一下名字，更清晰
+    component: InquiryList, // 注意确认这里是否确实是列表页，而不是详情
     meta: { requiresAuth: true }
   },
 
@@ -99,7 +95,6 @@ const routes = [
       { path: 'products', name: 'AdminProducts', component: ProductManager },
       { path: 'categories', name: 'AdminCategories', component: CategoryManager },
       { path: 'users', name: 'AdminUsers', component: UserManager },
-      { path: 'news', name: 'AdminNews', component: NewsManager },
       { path: 'orders', name: 'AdminOrders', component: OrderManager },
       { path: 'customers', name: 'AdminCustomers', component: CustomerManager },
       { path: 'employees', name: 'AdminEmployees', component: EmployeeManager },
@@ -123,30 +118,17 @@ const router = createRouter({
   }
 });
 
-// 路由守卫
+// 路由守卫优化
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('access_token');
-  const userInfoStr = localStorage.getItem('user_info');
-  let user = null;
-
-  if (userInfoStr) {
-    try {
-      user = JSON.parse(userInfoStr);
-    } catch (e) { console.error(e); }
-  }
-
   // 1. 检查需要登录的页面
-  if (to.meta.requiresAuth && !token) {
+  if (to.meta.requiresAuth && !isAuthenticated()) {
     return next('/login');
   }
 
   // 2. 检查管理员权限
-  if (to.meta.requiresAdmin) {
-    const isAdmin = user && (user.is_superuser || user.is_admin || user.role === 'admin');
-    if (!isAdmin) {
-      alert('无权访问后台');
-      return next('/');
-    }
+  if (to.meta.requiresAdmin && !isAdmin()) {
+    alert('无权访问后台');
+    return next('/');
   }
 
   next();

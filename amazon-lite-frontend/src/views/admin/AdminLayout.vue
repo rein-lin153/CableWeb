@@ -132,7 +132,6 @@ const menuGroups = [
     items: [
       { name: '客户列表', path: '/admin/customers', icon: '👥' },
       { name: '员工管理', path: '/admin/employees', icon: '🪪' },
-      { name: '新闻资讯', path: '/admin/news', icon: '📰' },
     ]
   }
 ];

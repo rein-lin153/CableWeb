@@ -135,7 +135,6 @@ const isMobileMenuOpen = ref(false);
 const navLinks = [
   { name: '首页', path: '/' },
   { name: '产品目录', path: '/products' },
-  { name: '行业资讯', path: '/news' },
   { name: '技术参数', path: '/specs' },
 ];
 
