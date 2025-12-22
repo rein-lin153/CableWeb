@@ -58,7 +58,7 @@
                   class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700">
                   我的订单
                 </router-link>
-                <router-link to="/inquiries"
+                <router-link to="/my-inquiries"
                   class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700">
                   我的询价单
                 </router-link>
@@ -110,7 +110,7 @@
             active-class="bg-orange-50 text-orange-600 font-bold">
             {{ link.name }}
           </router-link>
-          <router-link v-if="isLoggedIn" to="/inquiries" @click="isMobileMenuOpen = false"
+          <router-link v-if="isLoggedIn" to="/my-inquiries" @click="isMobileMenuOpen = false"
             class="block px-3 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-orange-600 transition-colors">
             我的询价单
           </router-link>
@@ -135,7 +135,6 @@ const isMobileMenuOpen = ref(false);
 const navLinks = [
   { name: '首页', path: '/' },
   { name: '产品目录', path: '/products' },
-  { name: '技术参数', path: '/specs' },
 ];
 
 const toggleCart = () => {

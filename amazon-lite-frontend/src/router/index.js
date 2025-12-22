@@ -7,8 +7,6 @@ import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import ProductsView from '../views/ProductsView.vue';
 import OrderHistoryView from '../views/OrderHistoryView.vue';
-import InquiryList from '../views/InquiryList.vue';
-import TechSpecs from '../views/TechSpecs.vue';
 import CheckoutView from '../views/CheckoutView.vue'; // [新增] 引入结算页
 import UserInquiries from '../views/user/UserInquiries.vue';
 import { isAuthenticated, isAdmin } from '../utils/auth'; // 引入工具
@@ -24,8 +22,6 @@ import UserManager from '../views/admin/UserManager.vue';
 import OrderManager from '../views/admin/OrderManager.vue';
 import CategoryManager from '../views/admin/CategoryManager.vue';
 import CustomerManager from '../views/admin/CustomerManager.vue';
-import EmployeeManager from '../views/admin/EmployeeManager.vue';
-import SpecManager from '../views/admin/SpecManager.vue';
 import InquiryManager from '../views/admin/InquiryManager.vue';
 import CostCalculator from '../views/admin/CostCalculator.vue';
 
@@ -37,7 +33,6 @@ const routes = [
   { path: '/login', name: 'Login', component: LoginView },
   { path: '/register', name: 'Register', component: RegisterView },
   { path: '/products', name: 'Products', component: ProductsView },
-  { path: '/specs', name: 'TechSpecs', component: TechSpecs },
   {
     path: '/my-inquiries',
     name: 'UserInquiries', // 【修复】从 'MyInquiries' 改为 'UserInquiries'，避免重名
@@ -62,13 +57,6 @@ const routes = [
     meta: { requiresAuth: true }
   },
 
-  // 询价相关
-{
-    path: '/inquiries',
-    name: 'InquiryList', // 【建议】这里也可以改一下名字，更清晰
-    component: InquiryList, // 注意确认这里是否确实是列表页，而不是详情
-    meta: { requiresAuth: true }
-  },
 
   // ==============================
   // 派送员专用路由 (隐藏导航栏)
@@ -97,8 +85,6 @@ const routes = [
       { path: 'users', name: 'AdminUsers', component: UserManager },
       { path: 'orders', name: 'AdminOrders', component: OrderManager },
       { path: 'customers', name: 'AdminCustomers', component: CustomerManager },
-      { path: 'employees', name: 'AdminEmployees', component: EmployeeManager },
-      { path: 'specs', name: 'SpecManager', component: SpecManager },
       { path: 'inquiries', name: 'AdminInquiries', component: InquiryManager },
       {
         path: 'costs',

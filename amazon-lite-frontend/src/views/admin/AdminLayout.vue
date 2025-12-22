@@ -105,33 +105,24 @@ const currentRouteName = computed(() => {
 // 分组菜单
 const menuGroups = [
   {
-    title: '概览',
+    title: '销售核心 (Sales)',
     items: [
-      { name: '控制台', path: '/admin/dashboard', icon: '📊' }
+      { name: '控制台', path: '/admin/dashboard', icon: '📊' },
+      { name: '订单处理', path: '/admin/orders', icon: '📦' },
+      { name: '询价/BOM', path: '/admin/inquiries', icon: '🏷️' },
     ]
   },
   {
-    title: '交易中心',
+    title: '财务与库存 (Finance)', // 新增分组
     items: [
-      { name: '订单管理', path: '/admin/orders', icon: '📦' },
-      // 新增询价管理
-      { name: '询价/报价', path: '/admin/inquiries', icon: '🏷️' },
+      { name: '成本与定价', path: '/admin/costs', icon: '💰' }, // ✅ 找回这个入口
+      { name: '产品库存', path: '/admin/products', icon: '🔌' },
     ]
   },
   {
-    title: '商品与库存',
+    title: '客户资源 (CRM)',
     items: [
-      { name: '商品管理', path: '/admin/products', icon: '🔌' },
-      { name: '分类管理', path: '/admin/categories', icon: '📑' },
-      { name: '技术参数', path: '/admin/specs', icon: '📏' },
-      { name: '成本核算', path: '/admin/costs', icon: '💰' },
-    ]
-  },
-  {
-    title: '用户与内容',
-    items: [
-      { name: '客户列表', path: '/admin/customers', icon: '👥' },
-      { name: '员工管理', path: '/admin/employees', icon: '🪪' },
+      { name: '客户名录', path: '/admin/customers', icon: '👥' },
     ]
   }
 ];

@@ -2,14 +2,18 @@
   <div v-if="isOpen" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" @click="close"></div>
 
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col md:flex-row overflow-hidden relative z-10 animate-fade-in-up">
-      
+    <div
+      class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col md:flex-row overflow-hidden relative z-10 animate-fade-in-up">
+
       <button @click="close" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-20">
-        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
       </button>
 
       <div class="w-full md:w-1/3 bg-gray-50 flex items-center justify-center p-6 border-r border-gray-100">
-        <img :src="product.image_url" class="max-h-64 object-contain mix-blend-multiply hover:scale-105 transition-transform duration-500">
+        <img :src="product.image_url"
+          class="max-h-64 object-contain mix-blend-multiply hover:scale-105 transition-transform duration-500">
       </div>
 
       <div class="w-full md:w-2/3 flex flex-col h-[80vh] md:h-auto">
@@ -19,19 +23,14 @@
         </div>
 
         <div class="flex-1 overflow-y-auto p-6 space-y-8">
-          
+
           <div>
             <h3 class="text-sm font-bold text-gray-900 mb-3">选择规格 (截面平方)</h3>
             <div class="flex flex-wrap gap-3">
-              <button 
-                v-for="spec in uniqueSpecs" 
-                :key="spec"
-                @click="selectedSpec = spec"
-                class="px-4 py-2 rounded-lg border text-sm font-medium transition-all"
-                :class="selectedSpec === spec 
-                  ? 'border-orange-500 bg-orange-50 text-orange-700 ring-1 ring-orange-500' 
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'"
-              >
+              <button v-for="spec in uniqueSpecs" :key="spec" @click="selectedSpec = spec"
+                class="px-4 py-2 rounded-lg border text-sm font-medium transition-all" :class="selectedSpec === spec
+                  ? 'border-orange-500 bg-orange-50 text-orange-700 ring-1 ring-orange-500'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'">
                 {{ spec }}
               </button>
             </div>
@@ -42,41 +41,40 @@
               <h3 class="text-sm font-bold text-gray-900">选择颜色 & 数量</h3>
               <span class="text-xs text-orange-600 font-mono">单价: ¥{{ currentPrice }}</span>
             </div>
-            
+
             <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3">
               <div v-for="variant in currentVariants" :key="variant.id" class="flex items-center justify-between group">
                 <div class="flex items-center w-1/3">
-                  <span 
-                    class="w-4 h-4 rounded-full mr-2 border border-gray-200 shadow-sm"
-                    :style="{ backgroundColor: getColorCode(variant.color) }"
-                  ></span>
+                  <span class="w-4 h-4 rounded-full mr-2 border border-gray-200 shadow-sm"
+                    :style="{ backgroundColor: getColorCode(variant.color) }"></span>
                   <span class="text-sm text-gray-700 font-medium">{{ variant.color }}</span>
                 </div>
 
                 <div class="w-1/3 text-center">
-                  <span v-if="variant.stock > 100" class="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">库存充足</span>
-                  <span v-else-if="variant.stock > 0" class="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">仅剩 {{ variant.stock }}</span>
-                  <span v-else class="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">缺货</span>
+                  <span v-if="variant.stock > 100"
+                    class="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">现货</span>
+                  <span v-else-if="variant.stock > 0"
+                    class="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">剩 {{ variant.stock }}</span>
+                  <span v-else class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full font-bold">可预订
+                    (3天)</span>
                 </div>
 
                 <div class="w-1/3 flex justify-end">
-                  <div class="flex items-center border border-gray-300 rounded-lg bg-white h-8 overflow-hidden" :class="{'opacity-50 pointer-events-none': variant.stock <= 0}">
-                    <button @click="changeQty(variant.id, -1)" class="w-8 h-full hover:bg-gray-100 text-gray-500">-</button>
-                    <input 
-                      type="number" 
-                      v-model.number="quantities[variant.id]" 
+                  <div class="flex items-center border border-gray-300 rounded-lg bg-white h-8 overflow-hidden">
+                    <button @click="changeQty(variant.id, -1)"
+                      class="w-8 h-full hover:bg-gray-100 text-gray-500">-</button>
+                    <input type="number" v-model.number="quantities[variant.id]"
                       class="w-12 h-full text-center text-sm border-x border-gray-100 focus:outline-none"
-                      placeholder="0"
-                      min="0"
-                      :max="variant.stock"
-                    >
-                    <button @click="changeQty(variant.id, 1)" class="w-8 h-full hover:bg-gray-100 text-gray-500">+</button>
+                      placeholder="0" min="0" :max="99999">
+                    <button @click="changeQty(variant.id, 1)"
+                      class="w-8 h-full hover:bg-gray-100 text-gray-500">+</button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <div v-else class="text-center py-8 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
+          <div v-else
+            class="text-center py-8 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
             请先选择一种电线规格
           </div>
 
@@ -85,15 +83,15 @@
         <div class="p-6 border-t border-gray-100 bg-white flex justify-between items-center">
           <div>
             <p class="text-xs text-gray-500">已选总数</p>
-            <p class="text-xl font-bold text-gray-900 font-mono">{{ totalSelectedQty }} <span class="text-sm font-normal text-gray-400">卷/盘</span></p>
+            <p class="text-xl font-bold text-gray-900 font-mono">{{ totalSelectedQty }} <span
+                class="text-sm font-normal text-gray-400">卷/盘</span></p>
           </div>
-          <button 
-            @click="confirmAdd" 
-            :disabled="totalSelectedQty === 0"
-            class="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-          >
+          <button @click="confirmAdd" :disabled="totalSelectedQty === 0"
+            class="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
             加入清单
-            <svg class="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <svg class="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
           </button>
         </div>
 
@@ -136,7 +134,7 @@ const uniqueSpecs = computed(() => {
   if (!props.product.variants) return [];
   const specs = props.product.variants.map(v => v.spec);
   // 【修复】使用 localeCompare 进行数字模式排序
-  return [...new Set(specs)].sort((a, b) => 
+  return [...new Set(specs)].sort((a, b) =>
     a.localeCompare(b, undefined, { numeric: true })
   );
 });
@@ -167,11 +165,11 @@ const changeQty = (vid, delta) => {
   const current = quantities[vid] || 0;
   const variant = props.product.variants.find(v => v.id === vid);
   const max = variant ? variant.stock : 999;
-  
+
   let next = current + delta;
   if (next < 0) next = 0;
   if (next > max) next = max;
-  
+
   quantities[vid] = next;
 };
 
@@ -222,14 +220,24 @@ input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
 input[type=number] {
   -moz-appearance: textfield;
 }
+
 .animate-fade-in-up {
   animation: fadeInUp 0.3s ease-out;
 }
+
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

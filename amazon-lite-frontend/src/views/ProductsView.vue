@@ -6,18 +6,14 @@
         <div>
           <h1 class="text-2xl font-bold text-gray-900 flex items-center">
             <svg class="w-6 h-6 mr-2 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-            产品选型目录
+            产品选型目录 (Catalog)
           </h1>
-          <p class="text-xs text-gray-500 mt-1">实时库存数据 | 每日 09:00 更新价格</p>
+          <p class="text-xs text-gray-500 mt-1">实时同步仓库库存 | 每日 09:00 更新铜价</p>
         </div>
         
         <div class="flex gap-2">
-           <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:border-orange-500 hover:text-orange-600 transition-colors">
-             只看现货
-           </button>
-           <button class="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors flex items-center">
-             <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-             下载报价单 PDF
+           <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:border-orange-500 hover:text-orange-600 transition-colors shadow-sm">
+             仅显示现货
            </button>
         </div>
       </div>
@@ -26,10 +22,10 @@
         
         <aside class="w-full lg:w-64 flex-shrink-0">
           <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden sticky top-24">
-            <div class="p-4 bg-gray-50 border-b border-gray-200 font-bold text-gray-800 text-sm">分类导航</div>
+            <div class="p-4 bg-gray-50 border-b border-gray-200 font-bold text-gray-800 text-sm">分类筛选</div>
             <nav class="p-2 space-y-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
               <button @click="selectCategory(null)" class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-100 transition-colors" :class="selectedCategoryId === null ? 'font-bold text-orange-600 bg-orange-50' : 'text-gray-600'">
-                全部系列
+                全部产品
               </button>
               
               <div v-for="parent in treeCategories" :key="parent.id" class="mt-2">
@@ -42,7 +38,7 @@
                     class="w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors flex justify-between group"
                     :class="selectedCategoryId === child.id ? 'text-orange-600 bg-orange-50 font-bold' : 'text-gray-500 hover:bg-gray-50'">
                     <span>{{ child.name }}</span>
-                    <span class="text-[10px] text-gray-300 group-hover:text-gray-400">{{ getProductCount(child.id) }}</span>
+                    <span class="text-[10px] text-gray-300 group-hover:text-gray-400 bg-gray-50 px-1.5 rounded-full border border-gray-100">{{ getProductCount(child.id) }}</span>
                   </button>
                 </div>
               </div>
@@ -51,64 +47,83 @@
         </aside>
 
         <main class="flex-1">
-          <div v-if="loading" class="py-20 text-center text-gray-400">数据加载中...</div>
+          <div v-if="loading" class="py-20 text-center text-gray-400 flex flex-col items-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-4"></div>
+            正在同步产品数据...
+          </div>
           
           <div v-else class="space-y-8">
             <section v-for="cat in displayCategories" :key="cat.id" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               
-              <div class="bg-gray-50/50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div class="bg-gray-50/80 px-6 py-4 border-b border-gray-200 flex items-center justify-between backdrop-blur-sm">
                 <h2 class="text-lg font-bold text-gray-900 flex items-center">
                   <span class="w-1.5 h-4 bg-orange-500 rounded mr-2"></span>
                   {{ cat.name }}
                 </h2>
-                <span class="text-xs text-gray-400">共 {{ getProductsByCategory(cat.id).length }} 款型号</span>
+                <span class="text-xs text-gray-500 bg-white px-2 py-1 rounded border border-gray-200">共 {{ getProductsByCategory(cat.id).length }} 个型号</span>
               </div>
 
-              <div class="hidden md:block">
+              <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left border-collapse">
-                  <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-medium">
+                  <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-medium tracking-wider">
                     <tr>
-                      <th class="px-6 py-3 w-20">图片</th>
-                      <th class="px-6 py-3">产品型号/名称</th>
+                      <th class="px-6 py-3 w-20">预览</th>
+                      <th class="px-6 py-3">型号/名称</th>
                       <th class="px-6 py-3">核心参数</th>
-                      <th class="px-6 py-3">库存状态</th>
-                      <th class="px-6 py-3 text-right">参考单价</th>
-                      <th class="px-6 py-3 text-right">操作</th>
+                      <th class="px-6 py-3">库存</th>
+                      <th class="px-6 py-3 text-right">含税单价</th>
+                      <th class="px-6 py-3 text-right w-32">操作</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-100">
-                    <tr v-for="product in getProductsByCategory(cat.id)" :key="product.id" class="hover:bg-orange-50/30 transition-colors group cursor-pointer" @click="openVariantModal(product)">
-                      <td class="px-6 py-3">
-                        <div class="w-12 h-12 bg-gray-100 rounded border border-gray-200 overflow-hidden">
+                    <tr v-for="product in getProductsByCategory(cat.id)" :key="product.id" class="hover:bg-orange-50/40 transition-colors group cursor-pointer" @click="openVariantModal(product)">
+                      <td class="px-6 py-4">
+                        <div class="w-12 h-12 bg-gray-100 rounded border border-gray-200 overflow-hidden relative">
                           <img :src="product.image_url" class="w-full h-full object-cover mix-blend-multiply">
                         </div>
                       </td>
-                      <td class="px-6 py-3">
-                        <div class="font-bold text-gray-900 group-hover:text-orange-600">{{ product.name }}</div>
-                        <div class="text-xs text-gray-400">{{ product.category_detail?.name }}</div>
+                      <td class="px-6 py-4">
+                        <div class="font-bold text-gray-900 group-hover:text-orange-600 transition-colors text-sm">{{ product.name }}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wide">{{ product.category_detail?.name }}</div>
                       </td>
-                      <td class="px-6 py-3">
-                        <div class="flex gap-2">
+                      <td class="px-6 py-4">
+                        <div class="flex gap-1 flex-wrap">
                           <span class="px-2 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600 border border-gray-200">国标纯铜</span>
-                          <span class="px-2 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600 border border-gray-200">XLPE</span>
+                          <span class="px-2 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600 border border-gray-200">耐火阻燃</span>
                         </div>
                       </td>
-                      <td class="px-6 py-3">
+                      <td class="px-6 py-4">
                          <div class="flex items-center text-xs font-medium text-green-600">
-                           <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
+                           <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
                            现货足
                          </div>
                       </td>
-                      <td class="px-6 py-3 text-right">
-                        <div class="font-mono font-bold text-orange-600">
-                          <span class="text-xs">¥</span>{{ getDisplayPrice(product) }}
+                      <td class="px-6 py-4 text-right">
+                        <div class="flex flex-col items-end">
+                          <div class="font-mono font-bold text-orange-600 text-base">
+                            <span class="text-xs mr-0.5">¥</span>{{ getDisplayPrice(product) }}
+                          </div>
+                          <div class="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mt-1 border border-blue-100">
+                            ≥100{{ product.unit||'m' }}: 98折
+                          </div>
                         </div>
-                        <div class="text-[10px] text-gray-400">/ {{ product.unit || '米' }}</div>
                       </td>
-                      <td class="px-6 py-3 text-right">
-                        <button class="text-xs bg-gray-900 hover:bg-orange-600 text-white px-3 py-1.5 rounded transition-colors shadow-sm">
-                          选规格
-                        </button>
+                      <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                          <button 
+                            @click.stop="openVariantModal(product)"
+                            class="text-xs font-bold text-white bg-gray-900 px-3 py-1.5 rounded hover:bg-orange-600 transition-colors shadow-sm"
+                          >
+                            选购
+                          </button>
+                          <button 
+                            @click.stop="" 
+                            title="下载技术规格书 PDF"
+                            class="p-1.5 text-gray-400 border border-gray-200 rounded hover:text-orange-600 hover:border-orange-300 bg-white transition-colors"
+                          >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   </tbody>
@@ -116,27 +131,30 @@
               </div>
 
               <div class="md:hidden divide-y divide-gray-100">
-                <div v-for="product in getProductsByCategory(cat.id)" :key="product.id" @click="openVariantModal(product)" class="p-4 flex gap-4 active:bg-gray-50">
-                   <div class="w-20 h-20 bg-gray-100 rounded border border-gray-200 flex-shrink-0">
-                     <img :src="product.image_url" class="w-full h-full object-cover">
+                <div v-for="product in getProductsByCategory(cat.id)" :key="product.id" @click="openVariantModal(product)" class="p-4 flex gap-4 active:bg-gray-50 transition-colors">
+                   <div class="w-20 h-20 bg-gray-100 rounded border border-gray-200 flex-shrink-0 relative overflow-hidden">
+                     <img :src="product.image_url" class="w-full h-full object-cover mix-blend-multiply">
                    </div>
                    <div class="flex-1 flex flex-col justify-between">
                      <div>
-                       <h3 class="font-bold text-gray-900 line-clamp-1">{{ product.name }}</h3>
+                       <h3 class="font-bold text-gray-900 line-clamp-1 text-sm">{{ product.name }}</h3>
                        <div class="flex gap-1 mt-1">
-                         <span class="text-[10px] bg-gray-100 px-1.5 rounded text-gray-500">国标</span>
+                         <span class="text-[10px] bg-gray-100 px-1.5 rounded text-gray-500 border border-gray-200">国标</span>
                        </div>
                      </div>
                      <div class="flex justify-between items-end">
-                       <span class="font-mono font-bold text-orange-600">¥{{ getDisplayPrice(product) }}</span>
-                       <button class="text-xs bg-gray-900 text-white px-3 py-1.5 rounded">选规格</button>
+                       <div class="flex flex-col">
+                         <span class="font-mono font-bold text-orange-600 text-sm">¥{{ getDisplayPrice(product) }}</span>
+                         <span class="text-[10px] text-gray-400 scale-90 origin-left">/ {{ product.unit || '米' }}</span>
+                       </div>
+                       <button class="text-xs bg-gray-900 text-white px-3 py-1.5 rounded font-medium shadow-sm">选规格</button>
                      </div>
                    </div>
                 </div>
               </div>
 
-              <div v-if="getProductsByCategory(cat.id).length === 0" class="p-8 text-center text-gray-400 text-sm">
-                暂无产品
+              <div v-if="getProductsByCategory(cat.id).length === 0" class="p-12 text-center text-gray-400 text-sm bg-gray-50/30">
+                该分类下暂无上架产品
               </div>
             </section>
           </div>
@@ -185,7 +203,7 @@ const fetchData = async () => {
     const roots = rawCats.filter(c => !c.parent_id);
     treeCategories.value = roots.map(root => ({
       ...root,
-      isOpen: true, // 默认展开，方便查看
+      isOpen: true, 
       children: rawCats.filter(c => c.parent_id === root.id)
     }));
 
@@ -197,7 +215,7 @@ const fetchData = async () => {
 };
 
 const displayCategories = computed(() => {
-  if (selectedCategoryId.value === null) return categories.value.filter(c => !c.parent_id); // 默认只显示一级分类块
+  if (selectedCategoryId.value === null) return categories.value.filter(c => !c.parent_id); 
   const target = categories.value.find(c => c.id === selectedCategoryId.value);
   return target ? [target] : [];
 });
@@ -212,8 +230,6 @@ const toggleCategory = (parent) => {
 };
 
 const getProductsByCategory = (catId) => {
-  // 查找该分类下的产品，如果是父分类，应该包含子分类产品(这里简化处理，只匹配当前id)
-  // 实际业务中可能需要递归查找所有子分类ID
   return allProducts.value.filter(p => p.category_id === catId);
 };
 
@@ -249,9 +265,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 自定义滚动条 */
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #f9fafb; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 </style>
