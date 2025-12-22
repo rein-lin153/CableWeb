@@ -1,134 +1,148 @@
 <template>
-  <div class="bg-gray-50/50 min-h-screen pt-24 pb-12">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="bg-gray-50 min-h-screen pt-24 pb-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      
       <div class="flex items-center mb-8">
-        <button @click="$router.back()"
-          class="mr-4 p-2 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:shadow-md transition-all duration-200">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
+        <button @click="$router.back()" class="mr-4 p-2 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 transition-all">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         </button>
-        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">订单结算</h1>
+        <h1 class="text-2xl font-extrabold text-gray-900">确认订单 / 提交合同</h1>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 space-y-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
-              <h2 class="font-bold text-gray-900 flex items-center gap-2">
-                <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-                商品清单
-              </h2>
-              <span class="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold">
-                共 {{ cartItems.length }} 件
-              </span>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <div class="lg:col-span-8 space-y-6">
+          
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+              <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <h2 class="font-bold text-gray-900">项目配送信息</h2>
             </div>
-
-            <div class="divide-y divide-gray-100">
-              <div v-if="cartItems.length === 0" class="p-12 text-center flex flex-col items-center">
-                <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                  <svg class="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
+            <div class="p-6 space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">现场联系人 <span class="text-red-500">*</span></label>
+                  <input v-model="form.contactName" type="text" placeholder="例如：李工" class="w-full border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500 text-sm">
                 </div>
-                <p class="text-gray-500 font-medium">购物车是空的</p>
-                <button @click="$router.push('/products')"
-                  class="mt-4 text-indigo-600 hover:underline text-sm">去选购商品</button>
-              </div>
-
-              <div v-else v-for="item in cartItems" :key="item.id"
-                class="p-6 flex gap-5 group hover:bg-gray-50/50 transition-colors">
-                <div
-                  class="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0 relative">
-                  <img :src="item.image_url ? `http://192.168.1.76:8000${item.image_url}` : '/placeholder.jpg'"
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                </div>
-                <div class="flex-1 flex flex-col justify-between py-1">
-                  <div>
-                    <div class="flex justify-between items-start">
-                      <h3 class="font-bold text-gray-900 text-lg">{{ item.product_name }}</h3>
-                      <span class="text-sm font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded">x{{ item.quantity
-                        }}</span>
-                    </div>
-                    <p class="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                      <span class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{{ item.spec }}</span>
-                      <span class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{{ item.color }}</span>
-                    </p>
-                  </div>
-                  <div class="flex justify-between items-end">
-                    <p class="text-xs text-gray-400">单价: ¥{{ item.price }} / {{ item.unit }}</p>
-                    <span class="text-indigo-600 font-bold font-mono text-lg">¥{{ (item.price *
-                      item.quantity).toFixed(2) }}</span>
-                  </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">联系电话 <span class="text-red-500">*</span></label>
+                  <input v-model="form.contactPhone" type="tel" placeholder="用于司机联络" class="w-full border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500 text-sm">
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="lg:col-span-1">
-          <div class="bg-white rounded-2xl shadow-xl shadow-indigo-100/50 border border-gray-100 p-6 sticky top-24">
-            <h2 class="font-bold text-gray-900 mb-6 text-lg flex items-center gap-2">
-              <svg class="w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              订单结算
-            </h2>
-
-            <div class="space-y-4 text-sm border-b border-gray-100 pb-6 mb-6">
-              <div class="flex justify-between text-gray-600">
-                <span>货品总额 (含税)</span>
-                <span class="font-medium">¥{{ total.toFixed(2) }}</span>
-              </div>
-              <div class="flex justify-between text-gray-600">
-                <span>配送方式</span>
-                <span class="text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded text-xs">厂商专车直送</span>
-              </div>
-            </div>
-
-            <div class="flex justify-between items-end mb-8">
               <div>
-                <span class="block text-xs text-gray-400 mb-1">预估总价</span>
-                <span class="font-bold text-gray-900 text-lg">CNY</span>
-              </div>
-              <span class="text-4xl font-extrabold text-orange-600 font-mono tracking-tight">¥{{ total.toFixed(2)
-                }}</span>
-            </div>
-
-            <button @click="submitOrder" :disabled="submitting || cartItems.length === 0"
-              class="w-full py-4 bg-gray-900 hover:bg-orange-600 text-white rounded-xl font-bold text-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center group">
-              <span v-if="submitting">处理中...</span>
-              <span v-else class="flex items-center">
-                提交订单 / 获取合同
-                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </span>
-            </button>
-
-            <div class="mt-4 text-center">
-              <p class="text-xs text-gray-400 mb-2">提交后销售经理将与您确认最终交期</p>
-              <div class="flex items-center justify-center gap-3 text-xs text-gray-500 bg-gray-50 py-2 rounded">
-                <span>🔒 支持对公转账</span>
-                <span class="w-px h-3 bg-gray-300"></span>
-                <span>📄 可开增值税专票</span>
+                <label class="block text-sm font-medium text-gray-700 mb-1">项目地址 / 收货地 <span class="text-red-500">*</span></label>
+                <textarea v-model="form.address" rows="2" placeholder="详细地址：市区/街道/门牌号 或 项目名称" class="w-full border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500 text-sm"></textarea>
               </div>
             </div>
           </div>
+
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+              <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+              <h2 class="font-bold text-gray-900">结算方式</h2>
+            </div>
+            <div class="p-6">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label class="relative flex items-center p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                  :class="form.paymentMethod === 'bank' ? 'border-orange-500 ring-1 ring-orange-500 bg-orange-50/20' : 'border-gray-200'">
+                  <input type="radio" v-model="form.paymentMethod" value="bank" class="h-4 w-4 text-orange-600 border-gray-300 focus:ring-orange-500">
+                  <div class="ml-3">
+                    <span class="block text-sm font-bold text-gray-900">对公转账 / ABA</span>
+                    <span class="block text-xs text-gray-500">需上传凭证或联系财务</span>
+                  </div>
+                </label>
+                <label class="relative flex items-center p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                  :class="form.paymentMethod === 'cod' ? 'border-orange-500 ring-1 ring-orange-500 bg-orange-50/20' : 'border-gray-200'">
+                  <input type="radio" v-model="form.paymentMethod" value="cod" class="h-4 w-4 text-orange-600 border-gray-300 focus:ring-orange-500">
+                  <div class="ml-3">
+                    <span class="block text-sm font-bold text-gray-900">货到付款 (Cash)</span>
+                    <span class="block text-xs text-gray-500">仅限金边市区且 &lt;$2000</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+             <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+               <h2 class="font-bold text-gray-900">采购清单</h2>
+               <span class="text-xs text-gray-500">共 {{ cartItems.length }} 项</span>
+             </div>
+             <div class="divide-y divide-gray-100">
+                <div v-for="item in cartItems" :key="item.id" class="p-4 sm:p-6 flex gap-4">
+                   <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-lg border border-gray-200 flex-shrink-0 overflow-hidden">
+                     <img :src="item.image_url" class="w-full h-full object-cover mix-blend-multiply">
+                   </div>
+                   <div class="flex-1">
+                     <div class="flex justify-between items-start">
+                       <div>
+                         <h3 class="font-bold text-gray-900 text-sm sm:text-base">{{ item.product_name }}</h3>
+                         <p class="text-xs text-gray-500 mt-1">规格: {{ item.spec }} | 颜色: {{ item.color }}</p>
+                       </div>
+                       <span class="font-mono font-bold text-gray-900">¥{{ (item.price * item.quantity).toFixed(2) }}</span>
+                     </div>
+                     <div class="flex justify-between items-center mt-4">
+                       <span class="text-xs text-gray-400">单价: ¥{{ item.price }}</span>
+                       <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded text-gray-600">x {{ item.quantity }} {{ item.unit }}</span>
+                     </div>
+                   </div>
+                </div>
+                <div v-if="cartItems.length === 0" class="p-8 text-center text-gray-400 text-sm">
+                   清单为空，请先选购商品
+                </div>
+             </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+             <label class="block text-sm font-medium text-gray-700 mb-2">订单备注 / 特殊要求</label>
+             <textarea v-model="form.note" rows="2" placeholder="例如：请带进场证，车身限高 3 米..." class="w-full border-gray-300 rounded-lg focus:ring-orange-500 focus:border-orange-500 text-sm"></textarea>
+          </div>
+
         </div>
+
+        <div class="lg:col-span-4">
+          <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sticky top-24">
+             <h2 class="text-lg font-bold text-gray-900 mb-6">金额明细</h2>
+             
+             <div class="space-y-3 pb-6 border-b border-gray-100 text-sm">
+               <div class="flex justify-between text-gray-600">
+                 <span>商品总额</span>
+                 <span>¥{{ total.toFixed(2) }}</span>
+               </div>
+               <div class="flex justify-between text-gray-600">
+                 <span>配送费</span>
+                 <span class="text-green-600 font-bold">免运费</span>
+               </div>
+               <div class="flex justify-between text-gray-600">
+                 <span>税费 (VAT 10%)</span>
+                 <span class="text-gray-400 text-xs mt-0.5">未含税 (如需专票请备注)</span>
+               </div>
+             </div>
+
+             <div class="flex justify-between items-end my-6">
+               <span class="font-bold text-gray-900">应付总额</span>
+               <span class="text-3xl font-black text-orange-600 font-mono">¥{{ total.toFixed(2) }}</span>
+             </div>
+
+             <button @click="submitOrder" :disabled="submitting || cartItems.length === 0"
+               class="w-full py-4 bg-gray-900 hover:bg-orange-600 text-white rounded-xl font-bold text-lg shadow-xl shadow-gray-200 hover:shadow-orange-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+               <svg v-if="submitting" class="animate-spin h-5 w-5 mr-3 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+               <span v-else>立即提交订单</span>
+             </button>
+             
+             <p class="text-xs text-gray-400 text-center mt-4">
+               点击提交即代表同意 <a href="#" class="underline hover:text-gray-600">销售条款</a>
+             </p>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCart } from '../composables/useCart';
 import api from '../api/axios';
@@ -137,30 +151,50 @@ const router = useRouter();
 const { cartItems, fetchCart } = useCart();
 const submitting = ref(false);
 
+// 表单状态
+const form = reactive({
+  contactName: '',
+  contactPhone: '',
+  address: '',
+  paymentMethod: 'bank', // 默认 bank
+  note: ''
+});
+
 const total = computed(() => {
   return cartItems.value.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 });
 
-// 确保进入页面时数据是最新的
 onMounted(fetchCart);
 
 const submitOrder = async () => {
+  // 1. 基础校验
   if (cartItems.value.length === 0) return;
+  if (!form.contactName || !form.contactPhone || !form.address) {
+    alert('请填写完整的配送信息（联系人、电话、地址）');
+    return;
+  }
 
   submitting.value = true;
   try {
-    // 调用后端创建订单接口
-    await api.post('/orders/');
+    // 2. 构造符合业务逻辑的 Payload
+    const payload = {
+      // 这里的字段需要跟后端 Pydantic 模型对应
+      // 如果后端暂时没开这些字段，可以先放在 note 里拼装，或者后端需要同步更新
+      // 假设后端 OrderCreate 接受 note 字段
+      note: `[联系人: ${form.contactName}] [电话: ${form.contactPhone}] [地址: ${form.address}] [支付: ${form.paymentMethod}] [备注: ${form.note}]`
+    };
 
-    // 下单成功后：刷新购物车 (前端清空) 并跳转
-    await fetchCart();
+    // 调用后端
+    await api.post('/orders/', payload);
+
+    await fetchCart(); // 清空购物车
     router.push('/orders/my');
-
-    // 可以替换为更好看的 Toast 提示
-    alert('🎉 下单成功！请留意发货通知。');
+    
+    // 简单的成功提示 (实际项目可用 Toast)
+    // alert('订单提交成功'); 
   } catch (e) {
     console.error(e);
-    alert('下单失败: ' + (e.response?.data?.detail || '未知错误'));
+    alert('下单失败: ' + (e.response?.data?.detail || '网络错误'));
   } finally {
     submitting.value = false;
   }
