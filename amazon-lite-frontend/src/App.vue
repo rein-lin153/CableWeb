@@ -12,14 +12,14 @@
     </router-view>
 
     <!-- 全站悬浮联络栏：建议放在这里 -->
-    <StickyContactBar v-if="!$route.meta.hideNavbar" />
+    <FloatingCart v-if="!$route.meta.hideNavbar" />
   </div>
 </template>
 
 <script setup>
 import { onMounted } from 'vue';
 import Navbar from './components/Navbar.vue';
-import StickyContactBar from './components/StickyContactBar.vue'; // 1. 导入组件
+import FloatingCart from './components/FloatingCart.vue'; // 1. 导入组件
 import { useAuth } from './composables/useAuth';
 
 const { initializeAuth } = useAuth();

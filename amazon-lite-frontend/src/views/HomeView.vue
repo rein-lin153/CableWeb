@@ -41,13 +41,19 @@
           </p>
 
           <div class="flex flex-wrap gap-4 pt-4">
-            <button @click="$router.push('/products')" class="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg font-bold text-lg shadow-lg shadow-blue-900/30 transition-all flex items-center group border border-blue-500/30">
-              查看选型目录
+            <button @click="$router.push('/products')" class="px-6 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg font-bold text-lg shadow-lg shadow-blue-900/30 transition-all flex items-center group border border-blue-500/30">
+              选型目录
               <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </button>
-            <button @click="showSmartInquiry = true" class="px-8 py-3.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg font-bold text-lg transition-all backdrop-blur-sm flex items-center">
-              <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              BOM 清单报价
+            
+            <button @click="$router.push('/quick-order')" class="px-6 py-3.5 bg-orange-600 hover:bg-orange-500 text-white border border-orange-500 rounded-lg font-bold text-lg transition-all shadow-lg shadow-orange-900/20 flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+              文本下单
+            </button>
+
+            <button @click="showSmartInquiry = true" class="px-6 py-3.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg font-bold text-lg transition-all backdrop-blur-sm flex items-center">
+              <svg class="w-5 h-5 mr-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              BOM 报价
             </button>
           </div>
           
@@ -57,28 +63,58 @@
               ENGINEERING TOOLKIT · 工程师工具箱
             </p>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-               <button class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700 hover:border-blue-500/50 transition-all group text-left">
-                  <div class="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+               <button @click="$router.push('/tools/voltage-drop')" class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700 hover:border-yellow-500/50 transition-all group text-left">
+                  <div class="w-8 h-8 rounded bg-yellow-500/10 flex items-center justify-center text-yellow-400 group-hover:bg-yellow-500 group-hover:text-white transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                   </div>
                   <div>
-                    <div class="text-xs font-bold text-slate-300 group-hover:text-white">下载今日报价</div>
-                    <div class="text-[10px] text-slate-500">Excel 表格</div>
+                    <div class="text-xs font-bold text-slate-300 group-hover:text-white">电压降计算</div>
+                    <div class="text-[10px] text-slate-500">线缆截面校验</div>
                   </div>
                </button>
 
-               <button class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700 hover:border-green-500/50 transition-all group text-left">
-                  <div class="w-8 h-8 rounded bg-green-500/10 flex items-center justify-center text-green-400 group-hover:bg-green-500 group-hover:text-white transition-colors">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+               <button @click="$router.push('/tools/conduit-fill')" class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700 hover:border-emerald-500/50 transition-all group text-left">
+                  <div class="w-8 h-8 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </div>
                   <div>
-                    <div class="text-xs font-bold text-slate-300 group-hover:text-white">国标质检库</div>
-                    <div class="text-[10px] text-slate-500">报审资料下载</div>
+                    <div class="text-xs font-bold text-slate-300 group-hover:text-white">穿管计算器</div>
+                    <div class="text-[10px] text-slate-500">管径占用率</div>
+                  </div>
+               </button>
+
+               <button @click="$router.push('/tools/unit-converter')" class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700 hover:border-purple-500/50 transition-all group text-left">
+                  <div class="w-8 h-8 rounded bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-slate-300 group-hover:text-white">线规换算</div>
+                    <div class="text-[10px] text-slate-500">AWG / mm²</div>
+                  </div>
+               </button>
+
+               <button @click="$router.push('/tools/reel-calculator')" class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700 hover:border-cyan-500/50 transition-all group text-left">
+                  <div class="w-8 h-8 rounded bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-slate-300 group-hover:text-white">装盘计算器</div>
+                    <div class="text-[10px] text-slate-500">物流盘具估算</div>
+                  </div>
+               </button>
+
+               <button @click="$router.push('/tools/label-printer')" class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700 hover:border-pink-500/50 transition-all group text-left">
+                  <div class="w-8 h-8 rounded bg-pink-500/10 flex items-center justify-center text-pink-400 group-hover:bg-pink-500 group-hover:text-white transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-slate-300 group-hover:text-white">标签打印</div>
+                    <div class="text-[10px] text-slate-500">工程标识生成</div>
                   </div>
                </button>
                
-               <button class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700 hover:border-purple-500/50 transition-all group text-left">
-                  <div class="w-8 h-8 rounded bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+               <button class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700 hover:border-blue-500/50 transition-all group text-left">
+                  <div class="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </div>
                   <div>

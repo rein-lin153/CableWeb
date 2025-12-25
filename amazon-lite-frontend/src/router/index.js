@@ -2,25 +2,67 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { isAuthenticated, isAdmin } from '../utils/auth';
 
-// --- 1. 核心前台页面 (保留静态引入，保证首屏速度) ---
+// 核心页面静态引入
 import HomeView from '../views/HomeView.vue';
 import ProductsView from '../views/ProductsView.vue';
 import LoginView from '../views/LoginView.vue';
 
 const routes = [
   // ==============================
-  // 前台路由 (Public & User)
+  // 前台路由
   // ==============================
   { path: '/', name: 'Home', component: HomeView },
   { path: '/login', name: 'Login', component: LoginView },
-  { 
-    path: '/register', 
-    name: 'Register', 
-    component: () => import('../views/RegisterView.vue') // 注册页也可以懒加载
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('../views/RegisterView.vue')
   },
   { path: '/products', name: 'Products', component: ProductsView },
-  
-  // 用户中心 (懒加载)
+
+  // --- 【关键修复】新增功能路由注册 ---
+  {
+    path: '/quick-order',
+    name: 'QuickOrder',
+    // 对应之前的新增文件 src/views/QuickOrderPad.vue
+    component: () => import('../views/QuickOrderPad.vue'),
+    meta: { requiresAuth: true } // 建议设为需登录，如需公开测试可删去此行
+  },
+  {
+    path: '/tools/voltage-drop',
+    name: 'VoltageDrop',
+    // 对应之前的新增文件 src/views/tools/VoltageDropCalculator.vue
+    // ⚠️ 注意：请确保你已创建 src/views/tools 文件夹并放入了文件
+    component: () => import('../views/tools/VoltageDropCalculator.vue')
+  },
+
+  // --- 【新增】穿管计算器路由 ---
+  {
+    path: '/tools/conduit-fill',
+    name: 'ConduitFill',
+    component: () => import('../views/tools/ConduitCalculator.vue')
+  },
+
+  // --- 【新增】装盘计算 & 标签打印 ---
+  {
+    path: '/tools/reel-calculator',
+    name: 'ReelCalculator',
+    component: () => import('../views/tools/ReelCalculator.vue')
+  },
+  {
+    path: '/tools/label-printer',
+    name: 'LabelPrinter',
+    component: () => import('../views/tools/LabelPrinter.vue')
+  },
+
+  // --- 【新增】线规换算器路由 ---
+  {
+    path: '/tools/unit-converter',
+    name: 'UnitConverter',
+    component: () => import('../views/tools/CableUnitConverter.vue')
+  },
+
+  // 用户中心
   {
     path: '/my-inquiries',
     name: 'UserInquiries',
@@ -41,7 +83,7 @@ const routes = [
   },
 
   // ==============================
-  // 派送员专用路由 (懒加载)
+  // 派送员路由
   // ==============================
   {
     path: '/driver',
@@ -51,48 +93,48 @@ const routes = [
   },
 
   // ==============================
-  // 后台路由 (Admin - 懒加载核心区)
+  // 后台路由
   // ==============================
   {
     path: '/admin',
-    component: () => import('../views/admin/AdminLayout.vue'), // 布局也懒加载
+    component: () => import('../views/admin/AdminLayout.vue'),
     meta: { hideNavbar: true, requiresAuth: true, requiresAdmin: true },
     children: [
       { path: '', redirect: '/admin/dashboard' },
-      { 
-        path: 'dashboard', 
-        name: 'AdminDashboard', 
-        component: () => import('../views/admin/Dashboard.vue') 
+      {
+        path: 'dashboard',
+        name: 'AdminDashboard',
+        component: () => import('../views/admin/Dashboard.vue')
       },
-      { 
-        path: 'products', 
-        name: 'AdminProducts', 
-        component: () => import('../views/admin/ProductManager.vue') 
+      {
+        path: 'products',
+        name: 'AdminProducts',
+        component: () => import('../views/admin/ProductManager.vue')
       },
-      { 
-        path: 'categories', 
-        name: 'AdminCategories', 
-        component: () => import('../views/admin/CategoryManager.vue') 
+      {
+        path: 'categories',
+        name: 'AdminCategories',
+        component: () => import('../views/admin/CategoryManager.vue')
       },
-      { 
-        path: 'users', 
-        name: 'AdminUsers', 
-        component: () => import('../views/admin/UserManager.vue') 
+      {
+        path: 'users',
+        name: 'AdminUsers',
+        component: () => import('../views/admin/UserManager.vue')
       },
-      { 
-        path: 'orders', 
-        name: 'AdminOrders', 
-        component: () => import('../views/admin/OrderManager.vue') 
+      {
+        path: 'orders',
+        name: 'AdminOrders',
+        component: () => import('../views/admin/OrderManager.vue')
       },
-      { 
-        path: 'customers', 
-        name: 'AdminCustomers', 
-        component: () => import('../views/admin/CustomerManager.vue') 
+      {
+        path: 'customers',
+        name: 'AdminCustomers',
+        component: () => import('../views/admin/CustomerManager.vue')
       },
-      { 
-        path: 'inquiries', 
-        name: 'AdminInquiries', 
-        component: () => import('../views/admin/InquiryManager.vue') 
+      {
+        path: 'inquiries',
+        name: 'AdminInquiries',
+        component: () => import('../views/admin/InquiryManager.vue')
       },
       {
         path: 'costs',
@@ -101,11 +143,11 @@ const routes = [
       },
     ]
   },
-  
-  // 404 页面
-  { 
-    path: '/:pathMatch(.*)*', 
-    redirect: '/' 
+
+  // 404 处理
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ];
 
@@ -118,22 +160,17 @@ const router = createRouter({
   }
 });
 
-// 路由守卫
 router.beforeEach((to, from, next) => {
   const isAuth = isAuthenticated();
 
-  // 1. 检查需要登录的页面
   if (to.meta.requiresAuth && !isAuth) {
-    // 记录想去的页面，登录后跳转
     return next({ path: '/login', query: { redirect: to.fullPath } });
   }
 
-  // 2. 检查管理员权限
   if (to.meta.requiresAdmin && !isAdmin()) {
     return next('/');
   }
 
-  // 3. 已登录用户访问登录页，直接跳首页
   if (to.path === '/login' && isAuth) {
     return next('/');
   }

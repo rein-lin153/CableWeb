@@ -1,7 +1,6 @@
 import os
 import shutil
 import enum
-import time
 import requests
 import magic  # pip install python-magic (Windows需安装 python-magic-bin)
 import uvicorn

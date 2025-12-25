@@ -1,16 +1,23 @@
 // src/api/axios.js
 import axios from 'axios';
 import { getToken, removeToken, removeUser } from '../utils/auth';
-// 注意：这里不能直接 import router from '../router'，否则会产生循环引用报错
-// 我们通过 window 或者在 main.js 里挂载的方式，或者简单抛出错误在组件层处理
-// 最简单的修复是保持 href 跳转但只在确实需要时触发，或者使用 cleaner way:
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 const instance = axios.create({
   baseURL,
-  timeout: 15000, // 延长到 15s，适应 B2B 弱网环境
+  timeout: 15000,
 });
+
+// 重试配置
+const RETRY_CONFIG = {
+  retries: 3,
+  retryDelay: (retryCount) => retryCount * 1000, // 1s, 2s, 3s
+  shouldRetry: (error) => {
+    // 仅针对网络错误或 5xx 服务端错误重试，4xx 客户端错误不重试
+    return !error.response || (error.response.status >= 500 && error.response.status <= 599);
+  }
+};
 
 instance.interceptors.request.use(
   (config) => {
@@ -25,22 +32,34 @@ instance.interceptors.request.use(
 
 instance.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response) {
-      const status = error.response.status;
-      
-      // 401: Token 过期
-      if (status === 401) {
-        removeToken();
-        removeUser();
-        
-        // 只有当不在登录页时才跳转，防止死循环
-        if (!window.location.pathname.includes('/login')) {
-             // 简单的跳转是安全的，虽然不是 SPA 方式，但在 401 这种严重错误下是可以接受的
-             window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
-        }
+  async (error) => {
+    const config = error.config;
+
+    // 401 处理：Token 过期
+    if (error.response && error.response.status === 401) {
+      removeToken();
+      removeUser();
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
       }
+      return Promise.reject(error);
     }
+
+    // 重试逻辑
+    if (config && RETRY_CONFIG.shouldRetry(error) && (config.__retryCount || 0) < RETRY_CONFIG.retries) {
+      config.__retryCount = config.__retryCount || 0;
+      config.__retryCount += 1;
+
+      // 创建延时 Promise
+      const backoff = new Promise((resolve) => {
+        setTimeout(() => resolve(), RETRY_CONFIG.retryDelay(config.__retryCount));
+      });
+
+      console.warn(`[Network] Retrying request... (${config.__retryCount}/${RETRY_CONFIG.retries})`);
+      await backoff;
+      return instance(config);
+    }
+
     return Promise.reject(error);
   }
 );
