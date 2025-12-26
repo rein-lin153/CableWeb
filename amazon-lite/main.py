@@ -207,6 +207,7 @@ class OrderItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"))
     product_id = Column(Integer, nullable=True)
+    variant_id = Column(Integer, ForeignKey("product_variants.id"), nullable=True) # 🟢 新增
     product_name = Column(String)
     product_spec = Column(String)
     product_color = Column(String)
@@ -215,7 +216,9 @@ class OrderItem(Base):
     unit_price = Column(Float)
     quantity = Column(Integer)
     subtotal = Column(Float)
+    
     order = relationship("Order", back_populates="items")
+    variant = relationship("ProductVariant") # 🟢 新增关联
 
 class Inquiry(Base):
     __tablename__ = "inquiries"
@@ -420,6 +423,10 @@ class CartItemCreate(BaseModel):
     variant_id: int
     quantity: int
 
+    
+class CartItemUpdate(BaseModel):
+    quantity: int
+
 class CartItemResponse(BaseModel):
     id: int
     variant_id: int
@@ -444,6 +451,7 @@ class OrderItemResponse(BaseModel):
     unit_price: float
     quantity: int
     subtotal: float
+    variant_id: Optional[int] = None # 🟢 新增
     class Config:
         from_attributes = True
 
@@ -720,22 +728,39 @@ async def create_order_from_cart(db: AsyncSession, user_id: int, discount_rate: 
     if not cart_items: return None
     original_total = 0.0
     order_items_data = []
+    
     for item in cart_items:
         variant = item.variant
         product = variant.product
         subtotal = variant.price * item.quantity
         original_total += subtotal
+        
         order_items_data.append({
-            "product_id": product.id, "product_name": product.name, "product_image": product.image_url,
-            "product_spec": variant.spec, "product_color": variant.color, "product_unit": variant.unit,
-            "unit_price": variant.price, "quantity": item.quantity, "subtotal": subtotal
+            "product_id": product.id, 
+            "variant_id": variant.id, # 🟢 关键：记录规格ID
+            "product_name": product.name, 
+            "product_image": product.image_url,
+            "product_spec": variant.spec, 
+            "product_color": variant.color, 
+            "product_unit": variant.unit,
+            "unit_price": variant.price, 
+            "quantity": item.quantity, 
+            "subtotal": subtotal
         })
+        
     final_total = round(original_total * (1 - discount_rate), 2)
-    db_order = Order(user_id=user_id, status=OrderStatus.PENDING_CONFIRMATION, original_total_price=original_total, final_total_price=final_total)
+    db_order = Order(
+        user_id=user_id, 
+        status=OrderStatus.PENDING_CONFIRMATION, 
+        original_total_price=original_total, 
+        final_total_price=final_total
+    )
     db.add(db_order)
     await db.flush()
+    
     for item_data in order_items_data:
         db.add(OrderItem(order_id=db_order.id, **item_data))
+        
     await db.execute(delete(CartItem).where(CartItem.user_id == user_id))
     await db.commit()
     await db.refresh(db_order)
@@ -1089,6 +1114,59 @@ orders_router = APIRouter(prefix="/api/v1/orders", tags=["Orders"])
 # --- Cart Router (🟢 新增独立路由，解决前端 /api/v1/cart/ 404) ---
 cart_router = APIRouter(prefix="/api/v1/cart", tags=["Cart"])
 
+
+@cart_router.patch("/{id}", response_model=CartItemResponse)
+async def update_cart_item(
+    id: int, 
+    item_in: CartItemUpdate, 
+    db: AsyncSession = Depends(get_db), 
+    current_user=Depends(get_current_user)
+):
+    """
+    修改购物车数量：
+    - 如果 quantity <= 0，则删除该条目
+    - 否则更新数量
+    """
+    # 查询购物车条目，确保属于当前用户
+    query = select(CartItem).options(
+        joinedload(CartItem.variant).joinedload(ProductVariant.product)
+    ).filter(CartItem.id == id, CartItem.user_id == current_user.id)
+    
+    result = await db.execute(query)
+    cart_item = result.scalars().first()
+    
+    if not cart_item:
+        raise HTTPException(status_code=404, detail="Cart item not found")
+
+    # 逻辑处理
+    if item_in.quantity <= 0:
+        await db.delete(cart_item)
+        await db.commit()
+        # 返回一个特殊的标记或抛出一个状态码告知前端已删除，
+        # 但为了保持 response_model 一致，这里我们可以返回删除前的快照，
+        # 或者前端在 update 成功后发现 quantity=0 会自动从列表移除。
+        # 这里选择：如果删除了，返回 quantity=0 的对象供前端判断。
+        cart_item.quantity = 0
+        return cart_item
+    else:
+        cart_item.quantity = item_in.quantity
+        await db.commit()
+        await db.refresh(cart_item)
+        
+        # 构造返回模型
+        return {
+            "id": cart_item.id, 
+            "variant_id": cart_item.variant_id, 
+            "quantity": cart_item.quantity, 
+            "product_name": cart_item.variant.product.name, 
+            "spec": cart_item.variant.spec, 
+            "color": cart_item.variant.color, 
+            "unit": cart_item.variant.unit,
+            "price": cart_item.variant.price, 
+            "subtotal": cart_item.variant.price * cart_item.quantity,
+            "image_url": cart_item.variant.product.image_url
+        }
+
 @cart_router.get("/", response_model=List[CartItemResponse])
 async def read_cart(db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)):
     items = await get_cart_items(db, current_user.id)
@@ -1162,6 +1240,91 @@ async def create_order(db: AsyncSession = Depends(get_db), current_user=Depends(
     if not order: raise HTTPException(status_code=400, detail="Cart is empty")
     return order
 
+# --------------------------------------------------------------------------
+# 1. 新增：公开物流追踪接口 (无需登录)
+# --------------------------------------------------------------------------
+@orders_router.get("/track/{order_id}")
+async def track_order_public(order_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    公开查询订单状态 (仅返回脱敏后的物流信息)
+    """
+    order = await get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="订单号不存在")
+    
+    # 构建脱敏信息
+    driver_info = "等待分配"
+    if order.driver:
+        # 司机姓名脱敏 (如: 王师傅)
+        driver_name = order.driver.username[0] + "师傅" if order.driver.username else "司机"
+        driver_info = f"{driver_name} (正在配送)"
+    
+    status_map = {
+        "pending_confirmation": "待确认",
+        "confirmed": "仓库备货中",
+        "delivering": "配送途中",
+        "completed": "已送达",
+        "cancelled": "已取消"
+    }
+    
+    return {
+        "id": order.id,
+        "status_text": status_map.get(order.status, "处理中"),
+        "driver_info": driver_info,
+        "updated_at": order.created_at.strftime("%Y-%m-%d %H:%M"),
+        "item_count": len(order.items)
+    }
+
+# --------------------------------------------------------------------------
+# 2. 新增：管理后台统计看板 (Admin Dashboard)
+# --------------------------------------------------------------------------
+@app.get("/api/v1/admin/stats", dependencies=[Depends(get_current_active_superuser)])
+async def get_admin_dashboard_stats(db: AsyncSession = Depends(get_db)):
+    """
+    聚合统计数据：待处理询价、待发货、销售额、活跃司机、库存预警
+    """
+    # 1. 待处理询价 (Pending Inquiries)
+    q_inq = select(Inquiry).filter(Inquiry.status == InquiryStatus.PENDING)
+    res_inq = await db.execute(q_inq)
+    pending_inquiries = len(res_inq.scalars().all())
+
+    # 2. 待发货/配送中订单 (Active Orders)
+    q_ord = select(Order).filter(Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.DELIVERING]))
+    res_ord = await db.execute(q_ord)
+    active_orders = len(res_ord.scalars().all())
+
+    # 3. 本月销售额 (Total Sales - Completed)
+    # 简化逻辑：计算所有 Completed 订单的总额
+    q_sales = select(Order).filter(Order.status == OrderStatus.COMPLETED)
+    res_sales = await db.execute(q_sales)
+    sales_orders = res_sales.scalars().all()
+    total_sales = sum([o.final_total_price for o in sales_orders])
+
+    # 4. 活跃司机 (Active Drivers)
+    q_driver = select(User).filter(User.role == UserRole.DRIVER)
+    res_driver = await db.execute(q_driver)
+    driver_count = len(res_driver.scalars().all())
+
+    # 5. 库存预警 (Low Stock Variants < 1000)
+    # 获取前 5 个库存紧张的产品
+    q_stock = select(ProductVariant).filter(ProductVariant.stock < 1000).options(joinedload(ProductVariant.product)).limit(5)
+    res_stock = await db.execute(q_stock)
+    low_stock_items = []
+    for v in res_stock.scalars().all():
+        low_stock_items.append({
+            "name": f"{v.product.name} {v.spec}",
+            "stock": v.stock,
+            "unit": v.unit
+        })
+
+    return {
+        "pending_inquiries": pending_inquiries,
+        "active_orders": active_orders,
+        "total_sales": total_sales,
+        "active_drivers": driver_count,
+        "low_stock_items": low_stock_items
+    }
+
 # 🟢 关键修复: 添加 /my 接口 (必须在 /{order_id} 之前)
 @orders_router.get("/my", response_model=List[OrderResponse])
 async def read_my_orders(db: AsyncSession = Depends(get_db), current_user = Depends(get_current_user)):
@@ -1203,21 +1366,37 @@ async def confirm_order(
     _=Depends(get_current_active_superuser)
 ):
     """
-    确认订单：将订单状态从 'pending_confirmation' 改为 'confirmed'
+    确认订单：扣减库存 (Inventory Deduction)
     """
-    order = await get_order_by_id(db, order_id)
+    # 使用 selectinload 预加载 items
+    res = await db.execute(select(Order).options(selectinload(Order.items)).filter(Order.id == order_id))
+    order = res.scalars().first()
+    
     if not order:
         raise HTTPException(status_code=404, detail="订单不存在")
     
     if order.status != OrderStatus.PENDING_CONFIRMATION:
-        raise HTTPException(status_code=400, detail="只有待确认的订单可以执行此操作")
+        raise HTTPException(status_code=400, detail="订单状态不正确，无法确认")
 
-    # 更新状态
+    # 🟢 库存检查与扣减
+    for item in order.items:
+        if not item.variant_id:
+            continue
+            
+        # 锁定行以防止并发扣减
+        v_res = await db.execute(select(ProductVariant).filter(ProductVariant.id == item.variant_id).with_for_update())
+        variant = v_res.scalars().first()
+        
+        if not variant:
+            raise HTTPException(status_code=400, detail=f"商品 {item.product_name} 规格已失效")
+            
+        if variant.stock < item.quantity:
+            raise HTTPException(status_code=400, detail=f"商品 {item.product_name} ({item.product_spec}) 库存不足 (剩余: {variant.stock})")
+            
+        variant.stock -= item.quantity
+        db.add(variant)
+
     order.status = OrderStatus.CONFIRMED
-    
-    # 提示：在此处可以根据业务逻辑添加具体的库存扣减操作
-    # 但由于当前 OrderItem 模型未存储 variant_id，建议后续优化数据结构
-    
     await db.commit()
     return await get_order_by_id(db, order_id)
 
@@ -1228,20 +1407,30 @@ async def cancel_order(
     _=Depends(get_current_active_superuser)
 ):
     """
-    作废订单：将订单状态改为 'cancelled'
+    作废订单：库存返还 (Inventory Restore)
     """
-    order = await get_order_by_id(db, order_id)
+    res = await db.execute(select(Order).options(selectinload(Order.items)).filter(Order.id == order_id))
+    order = res.scalars().first()
+    
     if not order:
         raise HTTPException(status_code=404, detail="订单不存在")
 
     if order.status in [OrderStatus.COMPLETED, OrderStatus.CANCELLED]:
         raise HTTPException(status_code=400, detail="已完成或已取消的订单无法再次作废")
 
-    # 更新状态
+    # 🟢 如果订单已经确认过（即已经扣过库存），则需要返还
+    should_restore_stock = order.status in [OrderStatus.CONFIRMED, OrderStatus.DELIVERING]
+
+    if should_restore_stock:
+        for item in order.items:
+            if item.variant_id:
+                v_res = await db.execute(select(ProductVariant).filter(ProductVariant.id == item.variant_id).with_for_update())
+                variant = v_res.scalars().first()
+                if variant:
+                    variant.stock += item.quantity
+                    db.add(variant)
+
     order.status = OrderStatus.CANCELLED
-    
-    # 提示：在此处可以添加库存返还逻辑
-    
     await db.commit()
     return await get_order_by_id(db, order_id)
 

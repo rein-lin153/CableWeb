@@ -341,8 +341,14 @@ const getStatusClass = (s) => {
 
 // 1. 确认订单
 const handleConfirm = async (order) => {
-  if (!confirm('确定确认订单并扣减库存吗？')) return;
-  try { await api.patch(`/orders/${order.id}/confirm`); fetchOrders(); } catch (e) { alert('失败'); }
+  if (!confirm(`确定确认订单 #${order.id} 吗？\n系统将自动扣减库存。`)) return;
+  try { 
+    await api.patch(`/orders/${order.id}/confirm`); 
+    await fetchOrders(); 
+    alert('订单已确认，库存已扣除');
+  } catch (e) { 
+    alert('操作失败: ' + (e.response?.data?.detail || '未知错误')); 
+  }
 };
 
 // 2. 发货逻辑 (打开弹窗并获取司机)
@@ -357,17 +363,14 @@ const openShipModal = (order) => {
 const submitShip = async () => {
   if (!shipForm.driverId) return;
   try {
-    // ✅ 修复后的写法 (把对象作为第二个参数，即 Request Body 发送)
     await api.patch(`/orders/${activeOrderId.value}/assign`, {
       driver_id: shipForm.driverId
     });
-
     showShipDialog.value = false;
-    fetchOrders();
+    await fetchOrders();
     alert('指派成功，订单已进入派送状态');
   } catch (e) {
     console.error(e);
-    // 加上详细的错误提示，方便调试
     alert('指派失败: ' + (e.response?.data?.detail || '未知错误'));
   }
 };

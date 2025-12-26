@@ -1,30 +1,36 @@
 <template>
-  <div class="antialiased text-gray-900">
-
-    <!-- 导航与购物车 -->
-    <Navbar v-if="!$route.meta.hideNavbar" />
-    
-    <!-- 主体内容 -->
-    <router-view v-slot="{ Component }">
-      <transition name="fade" mode="out-in">
-        <component :is="Component" />
-      </transition>
-    </router-view>
-
-    <!-- 全站悬浮联络栏：建议放在这里 -->
-    <FloatingCart v-if="!$route.meta.hideNavbar" />
+  <div class="min-h-screen bg-gray-50 text-gray-900 font-sans">
+    <Navbar />
+    <router-view />
+    <FloatingCart />
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
 import Navbar from './components/Navbar.vue';
-import FloatingCart from './components/FloatingCart.vue'; // 1. 导入组件
+import FloatingCart from './components/FloatingCart.vue';
 import { useAuth } from './composables/useAuth';
+import { useCart } from './composables/useCart';
+import { watch, onMounted } from 'vue';
 
-const { initializeAuth } = useAuth();
+const { isLoggedIn } = useAuth();
+const { fetchCart } = useCart();
 
+// 🟢 [核心修复] 
+// 1. App 挂载时，如果已登录，立即拉取购物车
 onMounted(() => {
-  initializeAuth();
+  if (isLoggedIn.value) {
+    fetchCart();
+  }
+});
+
+// 2. 监听登录状态变化 (例如用户刚登录成功)，自动拉取
+watch(isLoggedIn, (newVal) => {
+  if (newVal) {
+    fetchCart();
+  } else {
+    // 登出清空
+    useCart().cartItems.value = [];
+  }
 });
 </script>
